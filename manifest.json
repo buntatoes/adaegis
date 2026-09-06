@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "AdAegis",
+  "version": "0.1.0",
+  "description": "A lightweight, privacy-first Manifest V3 content blocker.",
+  "permissions": ["declarativeNetRequest", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "AdAegis",
+    "default_popup": "popup.html"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "core",
+        "enabled": true,
+        "path": "rules/core.json"
+      }
+    ]
+  }
+}
