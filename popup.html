@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AdAegis</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+      body { width: 260px; margin: 0; background: #101828; color: #f9fafb; }
+      main { padding: 20px; }
+      h1 { margin: 0 0 4px; font-size: 20px; }
+      p { margin: 0; color: #98a2b3; font-size: 13px; }
+      .state { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding: 14px; border-radius: 10px; background: #1d2939; }
+      #status { color: #6ce9a6; font-weight: 650; font-size: 14px; }
+      #status.paused { color: #fda29b; }
+      input { accent-color: #12b76a; width: 18px; height: 18px; }
+      small { display: block; margin-top: 16px; color: #667085; line-height: 1.35; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>AdAegis</h1>
+      <p>A lightweight network blocker.</p>
+      <section class="state" aria-label="Protection status">
+        <span id="status">Loading…</span>
+        <input id="enabled" type="checkbox" aria-label="Toggle protection" />
+      </section>
+      <small>Rules are processed locally by Chrome. No browsing data is collected or sent anywhere.</small>
+    </main>
+    <script type="module" src="dist/popup.js"></script>
+  </body>
+</html>
