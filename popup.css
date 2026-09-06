@@ -1,0 +1,18 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; }
+body { width: 340px; margin: 0; background: #101828; color: #f9fafb; }
+main { padding: 20px; }
+h1 { margin: 0; font-size: 22px; }
+h1 small { font-size: 12px; color: #b5c0d0; }
+h2 { font-size: 14px; color: #fdb022; margin-top: 20px; }
+p { font-size: 13px; line-height: 1.5; color: #b5c0d0; }
+label { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 0; font-size: 14px; }
+input { width: 18px; height: 18px; accent-color: #32d583; flex-shrink: 0; }
+button { font: inherit; font-size: 13px; background: #1d2939; border: 1px solid #667085; color: #f9fafb; padding: 10px 14px; border-radius: 7px; cursor: pointer; }
+:focus-visible { outline: 2px solid #84caff; outline-offset: 4px; }
+button:disabled { opacity: .5; cursor: default; }
+#host { display: block; overflow-wrap: anywhere; font-size: 12px; color: #b5c0d0; }
+#status { color: #6ce9a6; }
+.hint { margin-top: 0; font-size: 12px; }
+#notice { min-height: 40px; }
+footer { border-top: 1px solid #344054; font-size: 12px; line-height: 1.7; color: #b5c0d0; margin-top: 16px; padding-top: 14px; }
+a { color: #84caff; }

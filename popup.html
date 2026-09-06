@@ -4,32 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AdAegis</title>
-  <style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
-    body { width: 330px; margin: 0; background: #101828; color: #f9fafb; }
-    main { padding: 20px; }
-    h1 { margin: 0; font-size: 22px; }
-    h2 { font-size: 14px; color: #fdb022; margin-top: 24px; }
-    p { font-size: 13px; line-height: 1.5; color: #b5c0d0; }
-    label { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 0; font-size: 14px; }
-    input { width: 18px; height: 18px; accent-color: #32d583; flex-shrink: 0; }
-    input:focus-visible { outline: 2px solid #84caff; outline-offset: 4px; }
-    #host { display: block; overflow-wrap: anywhere; font-size: 12px; color: #b5c0d0; }
-    #status { color: #6ce9a6; }
-    #notice { min-height: 40px; }
-    footer { border-top: 1px solid #344054; font-size: 12px; line-height: 1.5; color: #b5c0d0; padding-top: 14px; }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body><main>
-  <h1>AdAegis</h1>
+  <h1>AdAegis <small>0.3.0</small></h1>
   <p id="status" role="status">Loading protection…</p>
   <label>Network protection <input id="enabled" type="checkbox" disabled></label>
-  <label>Hide page ads <input id="cosmetic" type="checkbox" disabled></label>
+  <label>Page ad cleanup <input id="cosmetic" type="checkbox" disabled></label>
+  <p class="hint">Optional. Asks for access to HTTP/HTTPS websites to hide recognized ad containers.</p>
   <label><span>Allow ads on this exact hostname <span id="host"></span></span><input id="site" type="checkbox" disabled></label>
   <h2>Experimental YouTube filtering</h2>
   <label>Enable player experiment <input id="youtube" type="checkbox" disabled></label>
-  <p>Tries to remove recognized player ad metadata and click available Skip buttons. May fail or disrupt playback. Off by default.</p>
-  <p id="notice" role="status" aria-live="polite">Reload YouTube after changing experimental mode. Turn it off and reload if playback breaks.</p>
-  <footer>Local settings only. No telemetry. The toolbar number counts network actions, not hidden elements or skipped ads.</footer>
+  <p class="hint">Optional. Asks for YouTube access. Tries limited ad-data cleanup and available Skip buttons. Can disrupt playback.</p>
+  <p id="notice" role="status" aria-live="polite">Reload the page after enabling a feature or changing a site exception. Turn the experiment off and reload if playback fails.</p>
+  <button type="button" id="revoke" disabled>Remove page access</button>
+  <footer>Local settings. No telemetry.<br><a href="INSTALL.html" target="_blank" rel="noopener">Install, update, and uninstall</a></footer>
 </main><script type="module" src="dist/popup.js"></script></body>
 </html>

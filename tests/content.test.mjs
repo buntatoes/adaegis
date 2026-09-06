@@ -3,57 +3,63 @@ import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFile } from "node:fs/promises";
 const code = await readFile(new URL("../dist/content.js", import.meta.url), "utf8");
-async function setup(saved = {}, host = "www.youtube.com") {
-  let changed;
-  const signals = [];
+async function setup(policy = { ok: true, cosmetic: true, youtube: false }, host = "www.youtube.com") {
+  let listener, mutation;
+  const signals = [], timers = [];
   const style = { dataset: {}, isConnected: false, remove() { this.isConnected = false; } };
   const context = {
-    location: { hostname: host },
+    location: new URL("https://" + host + "/watch"),
     document: { createElement: () => style, documentElement: { append: s => { s.isConnected = true; } } },
-    window: { dispatchEvent: event => signals.push(event.type) },
-    Event, requestAnimationFrame: () => 1, cancelAnimationFrame() {},
-    MutationObserver: class { observe() {} disconnect() {} },
-    chrome: {
-      storage: {
-        onChanged: { addListener: f => { changed = f; } },
-        local: { get: async () => saved }
-      }
-    }
+    window: { dispatchEvent: e => signals.push(e.type), setTimeout: f => timers.push(f), addEventListener() {} },
+    Event, clearTimeout() {},
+    MutationObserver: class { constructor(f) { mutation = f; } observe() {} disconnect() {} },
+    chrome: { runtime: {
+      id: "self",
+      sendMessage: async message => { assert.deepEqual(Object.keys(message), ["type"]); return policy; },
+      onMessage: { addListener: f => { listener = f; } }
+    } }
   };
   vm.runInNewContext(code, context);
-  await new Promise(resolve => setImmediate(resolve));
-  return { style, signals, changed };
+  const drain = () => new Promise(resolve => setImmediate(resolve));
+  await drain();
+  return { style, signals, mutation, timers, refresh: async next => {
+    policy = next; listener({ type: "refresh-policy" }, { id: "self" }); await drain();
+  } };
 }
-test("cosmetic style covers dynamic ad elements without hiding the player", async () => {
+test("safe CSS selectors leave player controls intact", async () => {
   const { style } = await setup();
   assert.ok(style.isConnected);
   assert.match(style.textContent, /ytd-ad-slot-renderer/);
   assert.ok(!style.textContent.includes("#movie_player"));
   assert.ok(!style.textContent.includes(".ytp-ad"));
 });
-test("page styles disappear immediately when paused or excepted", async () => {
-  for (const changes of [{ enabled: { newValue: false } }, { allowlist: { newValue: ["www.youtube.com"] } }]) {
-    const { style, changed } = await setup({ youtubeExperimental: true });
-    changed(changes, "local");
-    assert.equal(style.isConnected, false);
-  }
-});
-test("cosmetic switch does not disable the separate player experiment", async () => {
-  const { style, signals, changed } = await setup({ youtubeExperimental: true });
-  changed({ cosmetic: { newValue: false } }, "local");
+test("policy changes remove styles immediately and turn page hooks off", async () => {
+  const { style, signals, refresh } = await setup({ ok: true, cosmetic: true, youtube: true });
+  await refresh({ ok: true, cosmetic: false, youtube: false });
   assert.equal(style.isConnected, false);
-  assert.deepEqual(signals, []);
-  changed({ youtubeExperimental: { newValue: false } }, "local");
   assert.deepEqual(signals, ["adaegis:youtube-stop"]);
 });
-test("exceptions survive initial load and CSS resumes after removing one", async () => {
-  const { style, changed } = await setup({ allowlist: ["www.youtube.com"] });
+test("cosmetic pause does not stop the separately enabled experiment", async () => {
+  const { style, signals, refresh } = await setup({ ok: true, cosmetic: true, youtube: true });
+  await refresh({ ok: true, cosmetic: false, youtube: true });
   assert.equal(style.isConnected, false);
-  changed({ allowlist: { newValue: [] } }, "local");
-  assert.equal(style.isConnected, true);
+  assert.deepEqual(signals, []);
 });
-test("generic sites do not get YouTube selectors", async () => {
-  const { style } = await setup({}, "example.com");
+test("malformed policies fail closed", async () => {
+  for (const policy of [{ ok: false }, { ok: true, cosmetic: "true", youtube: true }, null]) {
+    const { style, signals } = await setup(policy);
+    assert.equal(style.isConnected, false);
+    assert.ok(signals.includes("adaegis:youtube-stop"));
+  }
+});
+test("style-removal tug of war is bounded", async () => {
+  const { style, mutation, timers } = await setup({ ok: true, cosmetic: true, youtube: true });
+  for (let i = 0; i < 15; i++) { style.remove(); mutation(); timers.shift()?.(); }
+  assert.equal(style.isConnected, false);
+  assert.equal(timers.length, 0);
+});
+test("generic pages only receive fixed generic selectors", async () => {
+  const { style } = await setup(undefined, "example.com");
   assert.match(style.textContent, /adsbygoogle/);
   assert.ok(!style.textContent.includes("ytd-"));
 });

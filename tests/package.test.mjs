@@ -11,11 +11,12 @@ test("MV3 references real files; experimental script is not unconditionally inje
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.minimum_chrome_version, "120");
   for (const path of [manifest.background.service_worker, manifest.action.default_popup,
-    ...manifest.content_scripts.flatMap(script => script.js),
+    ...(manifest.content_scripts ?? []).flatMap(script => script.js),
     ...manifest.declarative_net_request.rule_resources.map(rule => rule.path)]) {
     assert.ok((await read(path)).length);
   }
-  assert.ok(!manifest.content_scripts.some(script => script.js.includes("dist/youtube.js")));
+  assert.equal(manifest.content_scripts, undefined);
+  assert.equal(manifest.host_permissions, undefined);
   assert.ok(!manifest.permissions.includes("declarativeNetRequestFeedback"));
 });
 test("all committed JS is built from TypeScript, not manually maintained", async () => {

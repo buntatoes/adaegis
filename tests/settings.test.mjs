@@ -6,7 +6,7 @@ globalThis.chrome = { declarativeNetRequest: {
 const { normalize, hostname, exceptionRules } = await import("../dist/settings.js");
 
 test("safe defaults; experiment is opt-in", () => {
-  assert.deepEqual(normalize({}), { enabled: true, cosmetic: true, youtubeExperimental: false, allowlist: [] });
+  assert.deepEqual(normalize({}), { enabled: true, cosmetic: false, youtubeExperimental: false, allowlist: [] });
   assert.equal(normalize({ youtubeExperimental: "true" }).youtubeExperimental, false);
   assert.equal(normalize({ enabled: false }).enabled, false);
 });

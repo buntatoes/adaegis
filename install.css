@@ -1,0 +1,17 @@
+:root { font-family: system-ui, sans-serif; color: #142532; background: #f1f5f4; }
+body { margin: 0; }
+main { max-width: 760px; margin: auto; padding: 48px 22px 60px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; font-weight: 700; color: #18644e; }
+h1 { font-size: clamp(30px, 6vw, 46px); line-height: 1.1; margin: 14px 0; letter-spacing: -.03em; }
+.intro { font-size: 18px; color: #465e6b; }
+p { line-height: 1.6; }
+h2 { font-size: 19px; margin: 0 0 10px; }
+.steps { padding: 0; list-style-position: inside; counter-reset: step; }
+.steps li { list-style: none; background: white; padding: 22px; margin: 14px 0; border: 1px solid #d9e5df; border-radius: 12px; }
+.steps li h2::before { counter-increment: step; content: counter(step) ". "; color: #18644e; }
+.steps p { margin-bottom: 0; }
+section { margin-top: 28px; }
+.note { border-left: 4px solid #18644e; background: #e5f1eb; padding: 22px; }
+code { background: #e8efef; padding: 2px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+footer { border-top: 1px solid #bdcfca; padding-top: 22px; margin-top: 32px; color: #465e6b; font-size: 13px; line-height: 1.6; }
+@media print { body { background: white; } main { padding: 12px; } .steps li { break-inside: avoid; } }

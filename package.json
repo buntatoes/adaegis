@@ -1,6 +1,6 @@
 {
   "name": "adaegis",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22.18.0" },
@@ -8,10 +8,11 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "package": "npm test && node scripts/package.mjs"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.280",
-    "typescript": "^5.6.3"
+    "@types/chrome": "0.0.280",
+    "typescript": "5.6.3"
   }
 }

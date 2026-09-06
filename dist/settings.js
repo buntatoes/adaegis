@@ -7,8 +7,16 @@
  
 
 export const DEFAULTS           = {
-  enabled: true, cosmetic: true, youtubeExperimental: false, allowlist: []
+  enabled: true, cosmetic: false, youtubeExperimental: false, allowlist: []
 };
+export const ALL_SITES = ["http://*/*", "https://*/*"];
+export const YOUTUBE_SITES = ["https://www.youtube.com/*", "https://m.youtube.com/*", "https://youtube.com/*"];
+
+export function validHost(value         )                  {
+  return typeof value === "string" && value.length <= 253 &&
+    value.split(".").every(label => label.length >= 1 && label.length <= 63 &&
+      /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label));
+}
 
 export function hostname(value         )                {
   if (typeof value !== "string") return null;
@@ -21,12 +29,11 @@ export function hostname(value         )                {
 export function normalize(raw                         )           {
   const allowlist = Array.isArray(raw.allowlist)
     ? [...new Set(raw.allowlist.filter((host)                 =>
-      typeof host === "string" && hostname("https://" + host) === host &&
-      !/[/:?#@*]/.test(host)))].sort().slice(0, 200)
+      validHost(host) && hostname("https://" + host) === host))].sort().slice(0, 200)
     : [];
   return {
     enabled: typeof raw.enabled === "boolean" ? raw.enabled : true,
-    cosmetic: typeof raw.cosmetic === "boolean" ? raw.cosmetic : true,
+    cosmetic: raw.cosmetic === true,
     youtubeExperimental: raw.youtubeExperimental === true,
     allowlist
   };
