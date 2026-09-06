@@ -1,32 +1,35 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AdAegis</title>
-    <style>
-      :root { color-scheme: dark; font-family: system-ui, sans-serif; }
-      body { width: 260px; margin: 0; background: #101828; color: #f9fafb; }
-      main { padding: 20px; }
-      h1 { margin: 0 0 4px; font-size: 20px; }
-      p { margin: 0; color: #98a2b3; font-size: 13px; }
-      .state { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding: 14px; border-radius: 10px; background: #1d2939; }
-      #status { color: #6ce9a6; font-weight: 650; font-size: 14px; }
-      #status.paused { color: #fda29b; }
-      input { accent-color: #12b76a; width: 18px; height: 18px; }
-      small { display: block; margin-top: 16px; color: #667085; line-height: 1.35; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>AdAegis</h1>
-      <p>A lightweight network blocker.</p>
-      <section class="state" aria-label="Protection status">
-        <span id="status">Loading…</span>
-        <input id="enabled" type="checkbox" aria-label="Toggle protection" />
-      </section>
-      <small>Rules are processed locally by Chrome. No browsing data is collected or sent anywhere.</small>
-    </main>
-    <script type="module" src="dist/popup.js"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdAegis</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { width: 330px; margin: 0; background: #101828; color: #f9fafb; }
+    main { padding: 20px; }
+    h1 { margin: 0; font-size: 22px; }
+    h2 { font-size: 14px; color: #fdb022; margin-top: 24px; }
+    p { font-size: 13px; line-height: 1.5; color: #b5c0d0; }
+    label { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 0; font-size: 14px; }
+    input { width: 18px; height: 18px; accent-color: #32d583; flex-shrink: 0; }
+    input:focus-visible { outline: 2px solid #84caff; outline-offset: 4px; }
+    #host { display: block; overflow-wrap: anywhere; font-size: 12px; color: #b5c0d0; }
+    #status { color: #6ce9a6; }
+    #notice { min-height: 40px; }
+    footer { border-top: 1px solid #344054; font-size: 12px; line-height: 1.5; color: #b5c0d0; padding-top: 14px; }
+  </style>
+</head>
+<body><main>
+  <h1>AdAegis</h1>
+  <p id="status" role="status">Loading protection…</p>
+  <label>Network protection <input id="enabled" type="checkbox" disabled></label>
+  <label>Hide page ads <input id="cosmetic" type="checkbox" disabled></label>
+  <label><span>Allow ads on this exact hostname <span id="host"></span></span><input id="site" type="checkbox" disabled></label>
+  <h2>Experimental YouTube filtering</h2>
+  <label>Enable player experiment <input id="youtube" type="checkbox" disabled></label>
+  <p>Tries to remove recognized player ad metadata and click available Skip buttons. May fail or disrupt playback. Off by default.</p>
+  <p id="notice" role="status" aria-live="polite">Reload YouTube after changing experimental mode. Turn it off and reload if playback breaks.</p>
+  <footer>Local settings only. No telemetry. The toolbar number counts network actions, not hidden elements or skipped ads.</footer>
+</main><script type="module" src="dist/popup.js"></script></body>
 </html>

@@ -1,10 +1,16 @@
 {
   "manifest_version": 3,
   "name": "AdAegis",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "minimum_chrome_version": "120",
   "description": "A lightweight, privacy-first Manifest V3 content blocker.",
-  "permissions": ["declarativeNetRequest", "storage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": ["declarativeNetRequest", "storage", "scripting", "activeTab"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["dist/content.js"],
+    "run_at": "document_start"
+  }],
   "background": {
     "service_worker": "dist/background.js",
     "type": "module"
