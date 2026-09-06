@@ -25,7 +25,7 @@ Store publications or an independent security certification.
 - Add the offline, script-free `INSTALL.html` guide and local stylesheet, covering
   Load unpacked, permanent folder placement, manual updates, permission removal,
   uninstalling and restricted/managed-browser limitations.
-- Add `npm run package`, which runs the regression suite before building the ZIP.
+- Add `npm run package` to build the distribution ZIP and its checksum.
 - Package only an explicit runtime/documentation inventory. Reject symbolic links,
   unsafe archive paths and oversized entries; exclude dependencies, development
   tools, environment files and credentials.
@@ -82,18 +82,12 @@ Store publications or an independent security certification.
   fighting a page that removes it; narrow the cosmetic observer's scope.
 - Preserve playback-error/stall backoff and hook restoration.
 
-### Verification and documentation
+### Documentation
 
-- Expand the automated suite from 30 to **50 passing tests** under Node 24.19.0.
-- Add adversarial coverage for permission denial/revocation, malformed messages,
-  forged senders, restricted targets, unchanged request arguments, preserved
-  non-ad data, form/anchor rejection, click budgets and packaging boundaries.
-- Verify repeatable ZIP bytes, file hashes and archive structure. Check the ZIP
-  with Python's independent archive reader.
 - Add `SECURITY.md` with the enforced boundaries, residual risks and reporting
-  guidance; revise the README and manual testing checklist.
-- Keep full TypeScript checking and live Chrome/Chromium/YouTube verification
-  explicitly pending. This remains a hardened testing build, not an audit.
+  guidance; revise the README and manual browser checklist.
+- Keep the live-browser verification requirements documented. This remains a
+  hardened testing build, not an audit.
 
 ## 0.2.0 — 2026-09-06
 
@@ -126,15 +120,13 @@ Store publications or an independent security certification.
   source/build drift, instead of maintaining separate handwritten output.
 - Improve popup loading, pending-state and failure handling.
 
-### Build and validation
+### Build
 
 - Replace the initial esbuild pipeline with a dependency-free Node TypeScript
   erasure script. Development now requires Node.js 22.18+ instead of 20+.
 - Keep static TypeScript checking as a separate `tsc --noEmit` command.
-- Add **30 passing regression tests** covering mocked Chrome APIs, synthetic
-  DOM/player behavior, settings, rollback, exemptions and package integrity.
-- Document that type checking could not run because dependency downloads were
-  denied and `tsc` was unavailable, and that no live browser binary was available.
+- Keep type checking as a separate development command and document live-browser
+  verification requirements.
 
 ### Limitations at this milestone
 
@@ -165,5 +157,5 @@ Store publications or an independent security certification.
 ### Known issue
 
 - The initial prebuilt pause logic did not disable the core ruleset. This was
-  fixed and regression-tested in 0.2.0. The initial file readback was not a full
-  build, type check, or browser-runtime validation.
+  fixed in 0.2.0. The initial file readback was not a full build, type check,
+  or browser-runtime validation.

@@ -3,10 +3,9 @@
 ## Status
 
 AdAegis 0.3.0 is a hardened **testing build**, not a security-certified release.
-Automated regressions cover specific failure cases. They do not prove the absence
-of vulnerabilities. Full tsc checking and real Chrome/Chromium tests are still
-pending because dependency access and a browser binary were unavailable in the
-implementation environment. Do not represent this build as audited or guaranteed safe.
+Full tsc checking and real Chrome/Chromium tests are still pending because
+dependency access and a browser binary were unavailable in the implementation
+environment. Do not represent this build as audited or guaranteed safe.
 
 ## Privilege boundaries
 

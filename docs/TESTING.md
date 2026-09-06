@@ -1,8 +1,8 @@
-# Manual checks before general distribution
+# Manual browser checks before general distribution
 
-These checks are pending. Automated tests use mocked Chrome APIs and synthetic
-page fixtures; they do not validate Chrome's actual permission prompts, DNR
-engine, registration lifecycle, or YouTube's production behavior.
+These checks validate the browser behavior that cannot be confirmed from source
+inspection alone: Chrome's permission prompts, DNR engine, registration
+lifecycle and YouTube's production behavior.
 
 1. Install the pinned development dependencies and run npm run check. Run
    npm run package; confirm a clean ZIP loads in desktop Chrome/Chromium 120+.

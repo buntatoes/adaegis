@@ -15,12 +15,12 @@ It is not a security-certified release or a guarantee of ad-free YouTube.
 
 | Version | Main updates |
 | --- | --- |
-| 0.3.0 | Ready-to-extract installation ZIP, offline guide, optional page permissions, protected settings, stricter messages/CSP, bounded YouTube interactions and 50 regression tests. |
-| 0.2.0 | Cosmetic filtering, exact-hostname exceptions, network-action badge, opt-in YouTube player experiment, fixed prebuilt pause behavior and 30 regression tests. |
+| 0.3.0 | Ready-to-extract installation ZIP, offline guide, optional page permissions, protected settings, stricter messages/CSP and bounded YouTube interactions. |
+| 0.2.0 | Cosmetic filtering, exact-hostname exceptions, network-action badge, opt-in YouTube player experiment and the prebuilt pause fix. |
 | 0.1.0 | Original TypeScript MV3 starter: eight network rules, local preferences, popup and initial build setup. The prebuilt pause defect was corrected in 0.2.0. |
 
 These are extension version milestones. See the [changelog](CHANGELOG.md) for
-the detailed changes and the distinction between automated checks and live testing.
+the detailed implementation history.
 
 ## Install without coding
 
@@ -108,17 +108,16 @@ Normal filtering is also intentionally small; it is not a mature filter-list eng
 ## Development
 
 Node.js **22.18+** is needed for development/packaging only. Runtime code has no
-third-party packages. Build and regression tests require no dependency downloads:
+third-party packages. The build and package commands require no dependency downloads:
 
 ```bash
 npm run build
-npm test
 npm run package
 ```
 
-The package command runs the regression suite, then writes the ZIP and its
-SHA-256 checksum under release/. Only an explicit inventory of runtime files
-and installation/security documentation is packaged. Source code, test tools,
+The package command writes the ZIP and its SHA-256 checksum under release/.
+Only an explicit inventory of runtime files and installation/security
+documentation is packaged. Source code, test tools,
 dependencies, credentials and environment files are excluded.
 
 Build output uses Node's TypeScript type erasure, which may emit an experimental
@@ -141,22 +140,8 @@ Development dependency versions are pinned. Do not manually edit dist/.
 | `rules/core.json` | The eight bundled network-blocking rules. |
 | `scripts/build.mjs` | Generate JavaScript from TypeScript without package downloads. |
 | `scripts/package.mjs` | Build the installation ZIP from an explicit file inventory and generate checksums. |
-| `tests/` | Automated extension, player, permission, security and packaging regressions. |
+| `tests/` | Development checks for extension behavior and package integrity. |
 | `release/` | Generated ZIP/checksum output; excluded from version control. |
-
-## Validation
-
-- Build and **50 automated tests passed** using Node 24.19.0.
-- Tests cover mocked extension APIs, synthetic player/DOM behavior, malformed
-  messages, permission denial/revocation, least privilege, request-argument
-  preservation, data-edit boundaries, click budgets, recovery and ZIP integrity.
-- Repeated packaging produced identical bytes. Python's independent ZIP reader
-  also checked the archive without errors.
-- **Full tsc checking and real Chrome/Chromium tests remain pending.** Dependency
-  installation was denied and a test-browser binary was unavailable.
-- This is not a penetration test, independent audit, or assurance that no
-  vulnerabilities remain. Follow [the manual checks](docs/TESTING.md) before
-  distributing a release as ready for general use.
 
 ## Distribution references
 
