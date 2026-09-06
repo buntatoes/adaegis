@@ -4,6 +4,24 @@ A small, original TypeScript Manifest V3 ad-blocker for desktop Chrome/Chromium 
 **0.3.0 is a hardened testing build.** It is distributed outside the Chrome Web Store.
 It is not a security-certified release or a guarantee of ad-free YouTube.
 
+## Documentation
+
+- [Changelog](CHANGELOG.md): the full implementation history, fixes and validation status.
+- [Installation guide](INSTALL.html): install, update, remove permissions and uninstall.
+- [Security policy](SECURITY.md): permissions, hard-coded interaction limits and residual risks.
+- [Manual testing checklist](docs/TESTING.md): browser checks still needed before general distribution.
+
+## Version highlights
+
+| Version | Main updates |
+| --- | --- |
+| 0.3.0 | Ready-to-extract installation ZIP, offline guide, optional page permissions, protected settings, stricter messages/CSP, bounded YouTube interactions and 50 regression tests. |
+| 0.2.0 | Cosmetic filtering, exact-hostname exceptions, network-action badge, opt-in YouTube player experiment, fixed prebuilt pause behavior and 30 regression tests. |
+| 0.1.0 | Original TypeScript MV3 starter: eight network rules, local preferences, popup and initial build setup. The prebuilt pause defect was corrected in 0.2.0. |
+
+These are extension version milestones. See the [changelog](CHANGELOG.md) for
+the detailed changes and the distinction between automated checks and live testing.
+
 ## Install without coding
 
 Use the ready-made **adaegis-v0.3.0-chromium.zip** supplied by the project owner.
@@ -71,6 +89,18 @@ parameters, body, method, credentials and headers. Authentication, subscription,
 playability, stream signatures and DRM data are not changed.
 See [SECURITY.md](SECURITY.md) for the precise allowed operations and limits.
 
+The current hard-coded boundaries include:
+
+| Operation | Limit |
+| --- | --- |
+| Local player edits | Only the `adPlacements`, `playerAds` and `adSlots` arrays; at most 200 changed responses per document. |
+| Automatic Skip clicks | A recognized enabled, visible, non-form button; once per element, at least 2 seconds apart, at most 10 per minute and 100 per document. |
+| Page processing | DOM scans coalesced at 250 ms and stopped after 10,000 scans; cosmetic CSS insertion limited to 10 attempts per document. |
+
+These limits are bundled in the code, not configurable through website messages
+or remotely supplied rules. They cannot protect against someone editing the
+extension's source or a compromised browser/operating system.
+
 Live ad-blocking effectiveness is unverified. If playback fails, disable the
 experiment and reload. Restoring hooks cannot rebuild an already broken player.
 Normal filtering is also intentionally small; it is not a mature filter-list engine.
@@ -101,6 +131,18 @@ npm run check
 ```
 
 Development dependency versions are pinned. Do not manually edit dist/.
+
+### Repository layout
+
+| Path | Purpose |
+| --- | --- |
+| `src/` | TypeScript worker, popup, settings, cosmetic filtering and YouTube experiment. |
+| `dist/` | Generated JavaScript loaded by the browser. |
+| `rules/core.json` | The eight bundled network-blocking rules. |
+| `scripts/build.mjs` | Generate JavaScript from TypeScript without package downloads. |
+| `scripts/package.mjs` | Build the installation ZIP from an explicit file inventory and generate checksums. |
+| `tests/` | Automated extension, player, permission, security and packaging regressions. |
+| `release/` | Generated ZIP/checksum output; excluded from version control. |
 
 ## Validation
 
