@@ -6,6 +6,13 @@ Store publications or an independent security certification.
 
 ## Unreleased
 
+### Licensing — 2026-09-07
+
+- Adopt Apache License 2.0 for AdAegis's original code, bundled rules and documentation.
+- Add the full LICENSE and project attribution NOTICE; declare Apache-2.0 in package metadata.
+- Update the README, installation guide and security policy to reference the license.
+- Include LICENSE and NOTICE in generated installation ZIPs and their per-file checksums.
+
 ### Documentation
 
 - Add the complete changelog for versions 0.1.0 through 0.3.0.

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 export const FILES = Object.freeze([
   "manifest.json", "popup.html", "popup.css", "INSTALL.html", "install.css", "SECURITY.md",
   "dist/background.js", "dist/settings.js", "dist/popup.js", "dist/content.js", "dist/youtube.js",
-  "rules/core.json"
+  "rules/core.json", "LICENSE", "NOTICE"
 ]);
 const root = new URL("../", import.meta.url);
 function crc32(bytes) {

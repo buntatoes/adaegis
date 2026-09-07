@@ -83,6 +83,13 @@ There is no admin installer, policy/registry modification, browser-security flag
 certificate installation, proxy configuration or automatic updater.
 The unpacked folder must remain in place; install only downloads you trust.
 
+## License and modifications
+
+AdAegis is licensed under the [Apache License 2.0](LICENSE).
+This policy describes the maintained build's security behavior; it adds no
+license restrictions on modification or redistribution. Modified builds may
+change these protections.
+
 ## Reporting
 
 Report suspected vulnerabilities privately to the repository owner through a

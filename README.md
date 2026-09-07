@@ -6,6 +6,7 @@ It is not a security-certified release or a guarantee of ad-free YouTube.
 
 ## Documentation
 
+- [License](LICENSE) and [attribution notice](NOTICE): Apache License 2.0.
 - [Changelog](CHANGELOG.md): the full implementation history, fixes and validation status.
 - [Installation guide](INSTALL.html): install, update, remove permissions and uninstall.
 - [Security policy](SECURITY.md): permissions, hard-coded interaction limits and residual risks.
@@ -116,8 +117,8 @@ npm run package
 ```
 
 The package command writes the ZIP and its SHA-256 checksum under release/.
-Only an explicit inventory of runtime files and installation/security
-documentation is packaged. Source code, test tools,
+Only an explicit inventory of runtime files, installation/security
+documentation, LICENSE and NOTICE is packaged. Source code, test tools,
 dependencies, credentials and environment files are excluded.
 
 Build output uses Node's TypeScript type erasure, which may emit an experimental
@@ -158,6 +159,20 @@ API references: [optional permissions](https://developer.chrome.com/docs/extensi
 
 ## Source and license
 
-No uBlock source, assets or filter lists are included. No license has been
-selected; no general permission to reuse or redistribute the source has been
-granted by this repository.
+Copyright 2026 Buntos (GitHub: buntatoes).
+
+AdAegis's original source code, generated JavaScript, bundled rules and
+documentation are licensed under the [Apache License, Version 2.0](LICENSE).
+See [NOTICE](NOTICE) for attribution.
+
+You may use, modify and redistribute AdAegis, including commercially, subject to
+the license. Redistribution requires a copy of the license, prominent notices
+in modified files, retention of applicable source notices and preservation of
+applicable NOTICE attribution as described in Section 4. Modified versions do
+not have to publish their source code. The license includes a patent grant with
+conditions, limits trademark permissions and provides warranty and liability
+terms; the full LICENSE controls.
+
+No uBlock source, assets or filter lists are included. Third-party development
+dependencies retain their own licenses and are not bundled in installation ZIPs.
+Repository access remains private; licensing does not change GitHub visibility.
