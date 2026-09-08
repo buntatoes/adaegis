@@ -29,21 +29,21 @@ async function registerScripts(settings: Settings): Promise<void> {
   if (cosmetics) desired.push({
     id: "page-cleanup", matches: ALL_SITES, js: ["dist/content.js"],
     excludeMatches: settings.allowlist.map(host => "*://" + host + "/*"),
-    runAt: "document_start", world: chrome.scripting.ExecutionWorld.ISOLATED,
+    runAt: "document_start", world: "ISOLATED",
     persistAcrossSessions: true
   });
   if (experiment) {
-    // A separate isolated script carries only an OFF signal into page context.
+    // Isolated content.js carries YouTube start/stop into page context.
     if (!cosmetics) desired.push({
       id: "youtube-control", matches: YOUTUBE_SITES, js: ["dist/content.js"],
       excludeMatches: settings.allowlist.map(host => "https://" + host + "/*"),
-      runAt: "document_start", world: chrome.scripting.ExecutionWorld.ISOLATED,
+      runAt: "document_start", world: "ISOLATED",
       persistAcrossSessions: true
     });
     desired.push({
       id: "youtube-experiment", matches: YOUTUBE_SITES, js: ["dist/youtube.js"],
       excludeMatches: settings.allowlist.map(host => "https://" + host + "/*"),
-      runAt: "document_start", world: chrome.scripting.ExecutionWorld.MAIN,
+      runAt: "document_start", world: "MAIN",
       persistAcrossSessions: true
     });
   }

@@ -26,6 +26,9 @@ test("installation page is offline, script-free, and references local CSS", asyn
   assert.ok(!/<script\b|\son\w+\s*=|<iframe\b/i.test(html));
   assert.ok(!/https?:\/\//i.test(html));
   assert.match(html, /href="install.css"/);
+  assert.match(html, /img-src 'self'/);
+  assert.match(html, /src="icons\/icon128\.png"/);
+  assert.ok(FILES.includes("icons/icon128.png"));
   assert.ok((await read("install.css")).length > 0);
 });
 test("popup uses no HTML execution sinks or inline code", async () => {
@@ -35,6 +38,8 @@ test("popup uses no HTML execution sinks or inline code", async () => {
   assert.ok(!/innerHTML|outerHTML|insertAdjacentHTML|eval\(/.test(script));
   assert.match(html, /id="revoke"/);
   assert.match(html, /href="INSTALL.html"/);
+  assert.match(html, /exact hostname/);
+  assert.match(html, /src="icons\/icon48\.png"/);
 });
 test("invalid zip entry paths are rejected", () => {
   for (const path of ["../secret", "AdAegis/../../secret", "/etc/passwd", "AdAegis\\evil", "other/file"]) {

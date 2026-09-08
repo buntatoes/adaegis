@@ -21,18 +21,24 @@
   let resets = 0;
   let refreshing = false;
   let refreshAgain = false;
-  function stop()       {
+  function signalYoutube(enable         )       {
+    if (isYoutube) window.dispatchEvent(new Event(enable ? "adaegis:youtube-start" : "adaegis:youtube-stop"));
+  }
+  function teardownCosmetics()       {
     active = false;
     observer.disconnect();
     if (timer !== undefined) clearTimeout(timer);
     timer = undefined;
     style.remove();
-    if (isYoutube) window.dispatchEvent(new Event("adaegis:youtube-stop"));
+  }
+  function stop()       {
+    teardownCosmetics();
+    signalYoutube(false);
   }
   function ensureStyle()       {
     timer = undefined;
     if (!active || !document.documentElement || style.isConnected) return;
-    if (++resets > 10) { stop(); return; } // Do not fight a page that keeps removing our CSS.
+    if (++resets > 10) { teardownCosmetics(); return; } // Do not fight a page that keeps removing our CSS.
     document.documentElement.append(style);
   }
   const observer = new MutationObserver(() => {
@@ -49,6 +55,7 @@
       active = policy.cosmetic;
       observer.disconnect();
       if (active) {
+        resets = 0;
         ensureStyle();
         // Only watch the parent of our style, not every change throughout the page.
         if (active) observer.observe(document.documentElement ?? document, { childList: true });
@@ -57,7 +64,7 @@
         timer = undefined;
         style.remove();
       }
-      if (isYoutube && !policy.youtube) window.dispatchEvent(new Event("adaegis:youtube-stop"));
+      signalYoutube(policy.youtube);
     } catch { stop(); }
     finally {
       refreshing = false;
@@ -68,7 +75,7 @@
     if (sender.id === chrome.runtime.id && message && typeof message === "object" &&
         (message                      ).type === "refresh-policy") void refresh();
   });
-  window.addEventListener("pagehide", stop, { once: true });
+  window.addEventListener("pagehide", stop);
   window.addEventListener("pageshow", event => { if (event.persisted) void refresh(); });
   void refresh();
 })();

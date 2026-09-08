@@ -223,6 +223,50 @@ test("navigation out of the allowed routes restores hooks", () => {
   observers[0].callback(); timers.get(1)();
   assert.equal(context.fetch, originalFetch);
 });
+test("a start signal reinstalls hooks after a non-terminal stop", async () => {
+  const { context, events, originalFetch } = setup();
+  events.get("adaegis:youtube-stop")();
+  assert.equal(context.fetch, originalFetch);
+  events.get("adaegis:youtube-start")();
+  assert.notEqual(context.fetch, originalFetch);
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adSlots, undefined);
+  const next = fixture();
+  context.ytInitialPlayerResponse = next;
+  assert.equal(context.ytInitialPlayerResponse.adPlacements, undefined);
+  assert.ok(next.adPlacements);
+});
+test("playback errors ignore a later start signal", () => {
+  const { context, events, originalFetch, Video } = setup();
+  events.get("error")({ target: new Video() });
+  assert.equal(context.fetch, originalFetch);
+  events.get("adaegis:youtube-start")();
+  assert.equal(context.fetch, originalFetch);
+  const next = fixture();
+  context.ytInitialPlayerResponse = next;
+  assert.ok(next.adPlacements);
+});
+test("restart does not reset the per-document ad-data budget", () => {
+  const { context, events } = setup();
+  let modified = 1;
+  for (let i = 0; i < 50; i++) {
+    const next = fixture(); context.ytInitialPlayerResponse = next;
+    if (context.ytInitialPlayerResponse !== next) modified++;
+  }
+  events.get("adaegis:youtube-stop")();
+  events.get("adaegis:youtube-start")();
+  for (let i = 0; i < 200; i++) {
+    const next = fixture(); context.ytInitialPlayerResponse = next;
+    if (context.ytInitialPlayerResponse !== next) modified++;
+  }
+  assert.equal(modified, 200);
+});
+test("start is a no-op on an unsupported route", () => {
+  const { context, events, originalFetch } = setup();
+  events.get("adaegis:youtube-stop")();
+  context.location = new URL("https://www.youtube.com/account");
+  events.get("adaegis:youtube-start")();
+  assert.equal(context.fetch, originalFetch);
+});
 test("redirected player responses are left untouched", async () => {
   const { context } = setup({ fetchImpl: async () => {
     const response = new Response(JSON.stringify(fixture()), { headers: { "content-type": "application/json" } });
