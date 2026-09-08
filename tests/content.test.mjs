@@ -43,6 +43,9 @@ test("safe CSS selectors leave player controls intact", async () => {
   const { style } = await setup();
   assert.ok(style.isConnected);
   assert.match(style.textContent, /ytd-ad-slot-renderer/);
+  assert.match(style.textContent, /ytd-promoted-sparkles-text-search-renderer/);
+  assert.match(style.textContent, /ytd-rich-item-renderer:has\(ytd-ad-slot-renderer\)/);
+  assert.match(style.textContent, /div-gpt-ad/);
   assert.ok(!style.textContent.includes("#movie_player"));
   assert.ok(!style.textContent.includes(".ytp-ad"));
 });
@@ -97,6 +100,10 @@ test("pagehide cleanup runs every time and bfcache restore reapplies policy", as
 test("generic pages only receive fixed generic selectors", async () => {
   const { style, signals } = await setup(undefined, "example.com");
   assert.match(style.textContent, /adsbygoogle/);
+  assert.match(style.textContent, /div-gpt-ad/);
+  assert.match(style.textContent, /OUTBRAIN/);
   assert.ok(!style.textContent.includes("ytd-"));
+  assert.ok(!style.textContent.includes("ytm-"));
+  assert.ok(!style.textContent.includes("masthead-ad"));
   assert.deepEqual(signals, []);
 });

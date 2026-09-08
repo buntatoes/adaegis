@@ -1,11 +1,11 @@
 (() => {
   // Hard-coded policy. No page message, remote list, or popup setting can widen it.
   const HOSTS = ["youtube.com", "www.youtube.com", "m.youtube.com"];
-  const allowedPage = () => location.protocol === "https:" && !location.port &&
-    HOSTS.includes(location.hostname) &&
+  const allowedHost = () => location.protocol === "https:" && !location.port && HOSTS.includes(location.hostname);
+  const allowedPage = () => allowedHost() &&
     (location.pathname === "/" || location.pathname === "/watch" ||
       /^\/shorts\/[A-Za-z0-9_-]{11}\/?$/.test(location.pathname));
-  if (window.top !== window || !allowedPage()) return;
+  if (window.top !== window || !allowedHost()) return;
   const LIMITS = Object.freeze({
     edits: 200, scans: 10000, clicks: 100, clicksPerMinute: 10,
     clickCooldownMs: 2000, scanDelayMs: 250, stallMs: 15000, maxTopLevelKeys: 128
@@ -18,6 +18,7 @@
   if (page[loaded]) return;
   page[loaded] = true;
   let active = false;
+  let wanted = true;
   let terminal = false;
   let pending: number | undefined;
   let stallTimer: number | undefined;
@@ -77,7 +78,7 @@
     if (document.documentElement) document.documentElement.dataset.adaegisYoutube = reason;
   }
   function start(): void {
-    if (active || terminal || !allowedPage()) return;
+    if (active || terminal || !wanted || !allowedPage()) return;
     active = true;
     if (document.documentElement) delete document.documentElement.dataset.adaegisYoutube;
     try {
@@ -128,6 +129,11 @@
       inspect();
     } catch { stop("initialization-error"); }
   }
+  function sync(): void {
+    if (terminal) return;
+    if (wanted && allowedPage()) start();
+    else if (active) stop(wanted ? "unsupported-page" : "disabled");
+  }
   const onStop = () => stop();
   const inPlayer = (target: EventTarget | null): target is HTMLVideoElement =>
     target instanceof HTMLVideoElement && !!target.closest("#movie_player");
@@ -176,7 +182,14 @@
   const observer = new MutationObserver(() => {
     if (active && pending === undefined) pending = window.setTimeout(inspect, LIMITS.scanDelayMs);
   });
-  window.addEventListener("adaegis:youtube-stop", onStop);
-  window.addEventListener("adaegis:youtube-start", () => { start(); });
+  window.addEventListener("adaegis:youtube-stop", () => { wanted = false; stop(); });
+  window.addEventListener("adaegis:youtube-start", () => { wanted = true; start(); });
+  document.addEventListener("yt-navigate-finish", sync);
+  window.addEventListener("yt-navigate-finish", sync);
+  window.addEventListener("popstate", sync);
+  const navigation = (window as Window & { navigation?: EventTarget }).navigation;
+  if (navigation && typeof navigation.addEventListener === "function") {
+    navigation.addEventListener("navigatesuccess", sync);
+  }
   start();
 })();

@@ -5,6 +5,7 @@ let data = { enabled: false };
 let enabledRules = ["core"], dynamic = [], scripts = [];
 let rejectRulesOnce = false, rejectStorageOnce = false, restricted = false;
 let cosmeticAccess = false, youtubeAccess = false;
+let openTabs = [], injections = [], injectFail = false;
 const chrome = globalThis.chrome = {
   runtime: {
     id: "test-extension", getURL: path => "chrome-extension://test-extension/" + path,
@@ -43,12 +44,16 @@ const chrome = globalThis.chrome = {
     getRegisteredContentScripts: async () => scripts,
     registerContentScripts: async items => { scripts.push(...items); },
     updateContentScripts: async items => { scripts = scripts.map(s => items.find(i => i.id === s.id) ?? s); },
-    unregisterContentScripts: async ({ ids }) => { scripts = scripts.filter(s => !ids.includes(s.id)); }
+    unregisterContentScripts: async ({ ids }) => { scripts = scripts.filter(s => !ids.includes(s.id)); },
+    executeScript: async opts => {
+      if (injectFail) throw Error("Cannot access a chrome:// URL");
+      injections.push({ tabId: opts.target.tabId, files: [...opts.files], world: opts.world, allFrames: opts.target.allFrames, injectImmediately: opts.injectImmediately });
+    }
   },
   action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
   tabs: {
     get: async id => ({ id, active: id === 1, url: "https://www.youtube.com/watch?v=Abc12345678" }),
-    query: async () => [],
+    query: async () => openTabs,
     sendMessage: async () => {}
   }
 };
@@ -154,4 +159,73 @@ test("serialized settings and startup preserve the final state", async () => {
   startup(); await drain();
   assert.equal(data.enabled, true);
   assert.deepEqual(scripts, []);
+});
+test("enabling page cleanup injects into matching open tabs only", async () => {
+  cosmeticAccess = true;
+  injections = [];
+  openTabs = [
+    { id: 10, url: "https://news.example/", discarded: false },
+    { id: 11, url: "https://www.youtube.com/watch?v=Abc12345678", discarded: false },
+    { id: 12, url: "chrome://extensions", discarded: false },
+    { id: 13, discarded: false },
+    { id: 14, url: "https://news.example/", discarded: true },
+    { id: -1, url: "https://news.example/", discarded: false }
+  ];
+  await option("cosmetic", true);
+  assert.deepEqual(injections.map(item => item.tabId).sort(), [10, 11]);
+  assert.ok(injections.every(item => item.world === "ISOLATED" && item.files[0] === "dist/content.js"));
+  assert.ok(injections.every(item => item.allFrames === false && item.injectImmediately === true));
+});
+test("enabling YouTube with cleanup already on only injects MAIN-world hooks", async () => {
+  youtubeAccess = true;
+  injections = [];
+  openTabs = [
+    { id: 10, url: "https://news.example/", discarded: false },
+    { id: 11, url: "https://www.youtube.com/watch?v=Abc12345678", discarded: false }
+  ];
+  await option("youtubeExperimental", true);
+  assert.deepEqual(injections, [
+    { tabId: 11, files: ["dist/youtube.js"], world: "MAIN", allFrames: false, injectImmediately: true }
+  ]);
+});
+test("YouTube-only enable injects MAIN hooks before isolated control on YouTube tabs", async () => {
+  await option("youtubeExperimental", false);
+  await option("cosmetic", false);
+  youtubeAccess = true;
+  injections = [];
+  openTabs = [
+    { id: 20, url: "https://news.example/", discarded: false },
+    { id: 21, url: "https://www.youtube.com/watch?v=Abc12345678", discarded: false },
+    { id: 22, url: "https://m.youtube.com/", discarded: false }
+  ];
+  await option("youtubeExperimental", true);
+  assert.equal(injections.some(item => item.tabId === 20), false);
+  const youtubeTabs = injections.filter(item => item.tabId === 21);
+  assert.deepEqual(youtubeTabs.map(item => item.world), ["MAIN", "ISOLATED"]);
+  assert.deepEqual(youtubeTabs.map(item => item.files[0]), ["dist/youtube.js", "dist/content.js"]);
+  assert.ok(injections.some(item => item.tabId === 22 && item.world === "MAIN"));
+});
+test("already-registered scripts are not injected again on update", async () => {
+  injections = [];
+  await option("youtubeExperimental", true);
+  assert.deepEqual(injections, []);
+});
+test("allowlisted hosts are not injected", async () => {
+  await send({ type: "set-site", tabId: 1, allowed: true });
+  await option("youtubeExperimental", false);
+  injections = [];
+  await option("youtubeExperimental", true);
+  assert.equal(injections.some(item => item.tabId === 21), false);
+  assert.ok(injections.some(item => item.tabId === 22 && item.world === "MAIN"));
+  await send({ type: "set-site", tabId: 1, allowed: false });
+});
+test("inject failures do not roll back a successful settings change", async () => {
+  injectFail = true;
+  injections = [];
+  await option("enabled", false);
+  const result = await option("enabled", true);
+  injectFail = false;
+  assert.equal(result.ok, true);
+  assert.equal(data.enabled, true);
+  assert.ok(scripts.some(script => script.id === "youtube-experiment"));
 });

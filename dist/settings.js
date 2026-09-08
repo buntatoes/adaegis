@@ -26,6 +26,18 @@ export function hostname(value         )                {
   } catch { return null; }
 }
 
+// Only the match patterns this extension actually registers: scheme://host/*
+export function matchesPattern(url        , pattern        )          {
+  let parsed     ;
+  try { parsed = new URL(url); } catch { return false; }
+  if (!/^https?:$/.test(parsed.protocol)) return false;
+  const parts = /^(\*|https?):\/\/(\*|[a-z0-9.-]+)(\/\*)$/i.exec(pattern);
+  if (!parts) return false;
+  if (parts[1] !== "*" && parsed.protocol !== parts[1].toLowerCase() + ":") return false;
+  if (parts[2] !== "*" && parsed.hostname !== parts[2].toLowerCase()) return false;
+  return true;
+}
+
 export function normalize(raw                         )           {
   const allowlist = Array.isArray(raw.allowlist)
     ? [...new Set(raw.allowlist.filter((host)                 =>
