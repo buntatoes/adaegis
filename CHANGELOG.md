@@ -2,6 +2,20 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.4.1 — 2026-09-08
+
+YouTube filtering missed ads that 0.4.0 already thought it was handling.
+
+### Fixed
+
+- Skip clicks the actual Skip control. YouTube’s button often has HTML’s default `submit` type and is not in a form; that is no longer ignored
+- A hidden Skip placeholder no longer blocks a later visible one
+- Player JSON is also cleaned when the page `clone()`s the response, reads `arrayBuffer()`, or omits a JSON content type
+- `adBreakHeartbeatParams` and `playerConfig.ssapConfig` are removed from recognized player objects, so ads are not scheduled again after the first strip
+- If Skip is missing, the player’s own `skipAd` method is used once under the same click budget
+
+Turning the experiment off in the popup still stops it. A video that is already playing when you turn filtering on may still need a reload.
+
 ## 0.4.0 — 2026-09-08
 
 Exception list and timed pause in the popup, YouTube Music as its own grant, and player replies that are not only `response.json()`.
