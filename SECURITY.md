@@ -27,8 +27,8 @@ Limits are compiled into the extension. A website cannot raise them.
 | Skip button | Visible, enabled `button` outside a form, under an ad-showing player |
 | Skip budget | Once per element, ≥2 seconds apart, ≤10 per minute, ≤100 per page |
 | DOM scans | Coalesced at 250 ms; stop after 10,000 per page |
-| Cosmetic CSS | Stop after 10 insertions; does not stop YouTube filtering |
-| Pause | Disable, page hide, or unsupported URL. Can start again if policy still allows it |
+| Cosmetic CSS | Stop after 10 insertions. Does not stop YouTube filtering. |
+| Pause | Turning the experiment off, hiding the page, or leaving an allowed YouTube URL. Can start again if the feature is still enabled. |
 | Give up until reload | Player/video errors, 15-second unpaused stall, or 10,000 DOM scans |
 
 Original fetch arguments are forwarded once. AdAegis does not retry, spoof login or ad-completion events, or change stream URLs, signatures, DRM, or playability. Unknown shapes are left alone.

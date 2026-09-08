@@ -4,13 +4,16 @@ Dates are UTC. Version numbers are extension releases, not Chrome Web Store list
 
 ## 0.3.1 — 2026-09-08
 
+Patch on the first public release.
+
 ### Fixed
 
-- Page cleanup giving up after a CSS tug-of-war no longer stops YouTube filtering
-- YouTube filtering can start again after a policy refresh, back-forward cache restore, or turning the experiment back on
-- Playback errors, stalls, and scan limits still stay off until you reload
-- Hiding the page more than once still cleans up cosmetics and YouTube hooks
-- Popup copy matches exact-hostname exceptions
+- Page cleanup that gives up after a site keeps removing its stylesheet no longer turns off YouTube filtering
+- YouTube filtering can start again after you turn it back on, change a setting, or restore a tab from the back-forward cache
+- Leaving the page more than once still cleans up page hooks
+- The popup now says site exceptions apply to the exact hostname
+
+Playback errors, stalls, and the scan limit still stay off until you reload.
 
 ## 0.3.0 — 2026-09-08
 
