@@ -2,6 +2,19 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.3.1 — 2026-09-08
+
+Patch on the first public release.
+
+### Fixed
+
+- Page cleanup that gives up after a site keeps removing its stylesheet no longer turns off YouTube filtering
+- YouTube filtering can start again after you turn it back on, change a setting, or restore a tab from the back-forward cache
+- Leaving the page more than once still cleans up page hooks
+- The popup now says site exceptions apply to the exact hostname
+
+Playback errors, stalls, and the scan limit still stay off until you reload.
+
 ## 0.3.0 — 2026-09-08
 
 First public release. Install from [GitHub Releases](https://github.com/buntatoes/adaegis/releases).

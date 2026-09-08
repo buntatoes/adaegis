@@ -1,6 +1,6 @@
 # Security
 
-AdAegis 0.3.0 is an early public release. It is not an audited security product.
+AdAegis 0.3.1 is an early public release. It is not an audited security product.
 
 ## Permissions
 
@@ -27,8 +27,9 @@ Limits are compiled into the extension. A website cannot raise them.
 | Skip button | Visible, enabled `button` outside a form, under an ad-showing player |
 | Skip budget | Once per element, ≥2 seconds apart, ≤10 per minute, ≤100 per page |
 | DOM scans | Coalesced at 250 ms; stop after 10,000 per page |
-| Cosmetic CSS | Stop after 10 insertions |
-| Give up | Player/video errors, 15-second unpaused stall, unsupported URL, leaving the page, or disable |
+| Cosmetic CSS | Stop after 10 insertions. Does not stop YouTube filtering. |
+| Pause | Turning the experiment off, hiding the page, or leaving an allowed YouTube URL. Can start again if the feature is still enabled. |
+| Give up until reload | Player/video errors, 15-second unpaused stall, or 10,000 DOM scans |
 
 Original fetch arguments are forwarded once. AdAegis does not retry, spoof login or ad-completion events, or change stream URLs, signatures, DRM, or playability. Unknown shapes are left alone.
 
@@ -38,7 +39,7 @@ Network rules only block the eight listed ad-tech domains, plus exact-hostname a
 
 - Page scripts share the page's JavaScript environment. A page can interfere with them.
 - A Skip click runs the site's own click handler.
-- Restoring hooks will not repair an already broken player. Turn the experiment off and reload.
+- Restoring hooks will not repair an already broken player. Playback errors stay off until you reload.
 - A compromised browser, another malicious extension, or edited unpacked files are out of scope.
 - Broad page permission stays broad until you remove it. This is not a malware scanner.
 - Checksums catch accidental corruption. They do not prove who published the ZIP.

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { stripTypeScriptTypes } from "node:module";
 import vm from "node:vm";
+import { FILES } from "../scripts/package.mjs";
 const root = new URL("../", import.meta.url);
 const read = path => readFile(new URL(path, root), "utf8");
 const manifest = JSON.parse(await read("manifest.json"));
@@ -18,6 +19,14 @@ test("MV3 references real files; experimental script is not unconditionally inje
   assert.equal(manifest.content_scripts, undefined);
   assert.equal(manifest.host_permissions, undefined);
   assert.ok(!manifest.permissions.includes("declarativeNetRequestFeedback"));
+});
+test("toolbar icons exist, match the manifest, and are in the ZIP inventory", async () => {
+  const paths = [...new Set([...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)])];
+  assert.deepEqual(paths.sort(), ["icons/icon128.png", "icons/icon16.png", "icons/icon32.png", "icons/icon48.png"]);
+  for (const path of paths) {
+    assert.ok(FILES.includes(path), path);
+    assert.ok((await readFile(new URL(path, root))).length > 0);
+  }
 });
 test("all committed JS is built from TypeScript, not manually maintained", async () => {
   for (const file of await readdir(new URL("src/", root))) {

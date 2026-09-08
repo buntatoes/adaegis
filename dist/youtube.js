@@ -11,11 +11,15 @@
     edits: 200, scans: 10000, clicks: 100, clicksPerMinute: 10,
     clickCooldownMs: 2000, scanDelayMs: 250, stallMs: 15000, maxTopLevelKeys: 128
   });
-  const marker = "__adaegisYoutubeActive";
+  const TERMINAL = new Set([
+    "playback-error", "playback-stalled", "player-error", "scan-limit", "initialization-error"
+  ]);
+  const loaded = "__adaegisYoutubeLoaded";
   const page = window                                      ;
-  if (page[marker]) return;
-  page[marker] = true;
-  let active = true;
+  if (page[loaded]) return;
+  page[loaded] = true;
+  let active = false;
+  let terminal = false;
   let pending                    ;
   let stallTimer                    ;
   let edits = 0, scans = 0, clickCount = 0;
@@ -60,14 +64,70 @@
     observer.disconnect();
     if (pending !== undefined) clearTimeout(pending);
     if (stallTimer !== undefined) clearTimeout(stallTimer);
-    window.removeEventListener("adaegis:youtube-stop", onStop);
+    pending = undefined;
+    stallTimer = undefined;
     window.removeEventListener("pagehide", onStop);
     document.removeEventListener("error", onError, true);
     document.removeEventListener("waiting", onWaiting, true);
     document.removeEventListener("playing", onPlaying, true);
-    for (const undo of restore.reverse()) { try { undo(); } catch { /* Page owns its context. */ } }
-    page[marker] = false;
+    while (restore.length) {
+      const undo = restore.pop();
+      try { undo?.(); } catch { /* Page owns its context. */ }
+    }
+    if (TERMINAL.has(reason)) terminal = true;
     if (document.documentElement) document.documentElement.dataset.adaegisYoutube = reason;
+  }
+  function start()       {
+    if (active || terminal || !allowedPage()) return;
+    active = true;
+    if (document.documentElement) delete document.documentElement.dataset.adaegisYoutube;
+    try {
+      const key = "ytInitialPlayerResponse";
+      const original = Object.getOwnPropertyDescriptor(window, key);
+      if (!original || (original.configurable && "value" in original && original.writable)) {
+        let value = clean(original?.value);
+        const getter = () => value;
+        const setter = (next         ) => { value = clean(next); };
+        Object.defineProperty(window, key, {
+          configurable: true, enumerable: original?.enumerable ?? true, get: getter, set: setter
+        });
+        restore.push(() => {
+          const installed = Object.getOwnPropertyDescriptor(window, key);
+          if (installed?.get !== getter || installed.set !== setter) return;
+          if (original) Object.defineProperty(window, key, { ...original, value });
+          else {
+            delete page[key];
+            if (value !== undefined) Object.defineProperty(window, key, {
+              configurable: true, enumerable: true, writable: true, value
+            });
+          }
+        });
+      }
+      const originalFetch = window.fetch;
+      const wrappedFetch               = async function(              input, init) {
+        // Exactly one original call. Never rewrite URLs, query parameters, methods,
+        // request bodies, credentials, or headers; never retry or issue extra requests.
+        const response = await originalFetch.call(this, input, init);
+        if (!active || !allowedPage()) return response;
+        try {
+          const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.href);
+          if (url.origin !== location.origin || url.pathname !== "/youtubei/v1/player" ||
+              response.redirected || (response.url && new URL(response.url).origin !== location.origin) ||
+              !response.ok || response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return response;
+          const json = response.json.bind(response);
+          response.json = async () => clean(await json());
+        } catch { /* Preserve unexpected response formats. */ }
+        return response;
+      };
+      window.fetch = wrappedFetch;
+      restore.push(() => { if (window.fetch === wrappedFetch) window.fetch = originalFetch; });
+      window.addEventListener("pagehide", onStop);
+      document.addEventListener("error", onError, true);
+      document.addEventListener("waiting", onWaiting, true);
+      document.addEventListener("playing", onPlaying, true);
+      observer.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "disabled", "aria-disabled"] });
+      inspect();
+    } catch { stop("initialization-error"); }
   }
   const onStop = () => stop();
   const inPlayer = (target                    )                             =>
@@ -117,52 +177,7 @@
   const observer = new MutationObserver(() => {
     if (active && pending === undefined) pending = window.setTimeout(inspect, LIMITS.scanDelayMs);
   });
-  try {
-    const key = "ytInitialPlayerResponse";
-    const original = Object.getOwnPropertyDescriptor(window, key);
-    if (!original || (original.configurable && "value" in original && original.writable)) {
-      let value = clean(original?.value);
-      const getter = () => value;
-      const setter = (next         ) => { value = clean(next); };
-      Object.defineProperty(window, key, {
-        configurable: true, enumerable: original?.enumerable ?? true, get: getter, set: setter
-      });
-      restore.push(() => {
-        const installed = Object.getOwnPropertyDescriptor(window, key);
-        if (installed?.get !== getter || installed.set !== setter) return;
-        if (original) Object.defineProperty(window, key, { ...original, value });
-        else {
-          delete page[key];
-          if (value !== undefined) Object.defineProperty(window, key, {
-            configurable: true, enumerable: true, writable: true, value
-          });
-        }
-      });
-    }
-    const originalFetch = window.fetch;
-    const wrappedFetch               = async function(              input, init) {
-      // Exactly one original call. Never rewrite URLs, query parameters, methods,
-      // request bodies, credentials, or headers; never retry or issue extra requests.
-      const response = await originalFetch.call(this, input, init);
-      if (!active || !allowedPage()) return response;
-      try {
-        const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.href);
-        if (url.origin !== location.origin || url.pathname !== "/youtubei/v1/player" ||
-            response.redirected || (response.url && new URL(response.url).origin !== location.origin) ||
-            !response.ok || response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return response;
-        const json = response.json.bind(response);
-        response.json = async () => clean(await json());
-      } catch { /* Preserve unexpected response formats. */ }
-      return response;
-    };
-    window.fetch = wrappedFetch;
-    restore.push(() => { if (window.fetch === wrappedFetch) window.fetch = originalFetch; });
-    window.addEventListener("adaegis:youtube-stop", onStop);
-    window.addEventListener("pagehide", onStop);
-    document.addEventListener("error", onError, true);
-    document.addEventListener("waiting", onWaiting, true);
-    document.addEventListener("playing", onPlaying, true);
-    observer.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "disabled", "aria-disabled"] });
-    inspect();
-  } catch { stop("initialization-error"); }
+  window.addEventListener("adaegis:youtube-stop", onStop);
+  window.addEventListener("adaegis:youtube-start", () => { start(); });
+  start();
 })();

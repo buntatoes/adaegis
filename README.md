@@ -6,13 +6,13 @@
 
 A small ad blocker for desktop Chrome and Chromium 120+. Network blocking is on by default. Page cleanup and YouTube filtering are optional and start off.
 
-**0.3.0** is the first public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
+**0.3.1** is the current public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
 
 [Install](#install) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [License](LICENSE)
 
 ## Install
 
-Download **[adaegis-v0.3.0-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
+Download **[adaegis-v0.3.1-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
 
 1. Extract the ZIP and keep the **AdAegis** folder somewhere permanent, such as Documents.
 2. Open `chrome://extensions`.

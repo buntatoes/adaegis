@@ -9,8 +9,8 @@ Run these in Chrome or Chromium 120+ before tagging a release.
 5. With cleanup off, enable only YouTube filtering. The prompt should be YouTube-only. Reload home, watch, and Shorts.
 6. From a content-script context, global settings must be unreadable. A page-policy reply is only `ok` / `cosmetic` / `youtube` for that page.
 7. Add an exact-host exception, reload, and confirm only that host is excepted. Remove it and reload; blocking should return.
-8. Toggle features and **Remove page access** on open pages. New scripts need a reload. Confirm grants are actually gone.
-9. On YouTube, check error recovery (disable and reload). Normal player controls must stay clickable. Skip must not fire on forms or links, or hammer a rotating button.
+8. Toggle features and **Remove page access** on open pages. Scripts that were never injected still need a reload. If YouTube filtering was already running, turning it off and on should restore hooks without a reload. Confirm grants are actually gone.
+9. On YouTube, a playback error or stall must stay off until reload. Turning the experiment off and on again must restore hooks. Normal player controls must stay clickable. Skip must not fire on forms or links, or hammer a rotating button.
 10. Try signed-in and signed-out YouTube, captions, fullscreen, in-page navigation, live, and offline. Note the browser version and what you saw.
 11. Toolbar counts are network actions, not ads removed. Restart the browser while paused: settings should stick and extra scripts should stay unregistered.
 12. Site exceptions cannot be changed on `chrome://`, `file://`, or inactive tabs.
