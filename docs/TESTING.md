@@ -6,9 +6,9 @@ Run these in Chrome or Chromium 120+ before tagging a release.
 2. Follow INSTALL.html with no extra tools. Confirm the install does not request page access.
 3. Hit a domain covered by the bundled rules; pause and try again. Turn off other blockers while you do this.
 4. Enable page cleanup and deny the permission prompt: it must stay off. Grant access and check that recognized ads hide on the current page without a reload, and that forms, captions, and keyboard use still work.
-5. With cleanup off, enable only YouTube filtering. The prompt should be YouTube-only. Open home, watch, and Shorts. Click from home to a video without a full reload; filtering should continue. Open search or a channel, then a video; filtering should start on the watch page.
+5. With cleanup off, enable only YouTube filtering. The prompt should be YouTube-only. Open home, watch, and Shorts. Click from home to a video without a full reload; filtering should continue. Open search or a channel, then a video; the new video should still be filtered. Account pages must not keep those hooks.
 6. From a content-script context, global settings must be unreadable. A page-policy reply is only `ok` / `cosmetic` / `youtube` for that page.
-7. Add an exact-host exception and confirm only that host is excepted. Remove it; blocking should return. Reload if you need previously blocked ads to load again.
+7. Add an exact-host exception and confirm only that host is excepted. Remove it; page features should return on that host's open tab. Reload if you need previously blocked ads to load again.
 8. Toggle features and **Remove page access** on open pages. First enable should inject into matching tabs. If YouTube filtering was already running, turning it off and on should restore hooks without a reload. Confirm grants are actually gone.
 9. On YouTube, a playback error or stall must stay off until reload, including after in-page navigation. Turning the experiment off and on again must restore hooks. Normal player controls must stay clickable. Skip must not fire on forms or links, or hammer a rotating button.
 10. Try signed-in and signed-out YouTube, captions, fullscreen, in-page navigation, live, and offline. Note the browser version and what you saw.

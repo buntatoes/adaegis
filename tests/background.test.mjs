@@ -217,7 +217,23 @@ test("allowlisted hosts are not injected", async () => {
   await option("youtubeExperimental", true);
   assert.equal(injections.some(item => item.tabId === 21), false);
   assert.ok(injections.some(item => item.tabId === 22 && item.world === "MAIN"));
+});
+test("removing a site exception injects into that host's open tabs", async () => {
+  injections = [];
   await send({ type: "set-site", tabId: 1, allowed: false });
+  assert.ok(injections.some(item => item.tabId === 21 && item.world === "MAIN"));
+  assert.ok(injections.some(item => item.tabId === 21 && item.world === "ISOLATED"));
+});
+test("frozen tabs are not injected", async () => {
+  await option("youtubeExperimental", false);
+  injections = [];
+  openTabs = [
+    { id: 30, url: "https://www.youtube.com/watch?v=Abc12345678", discarded: false, frozen: true },
+    { id: 31, url: "https://m.youtube.com/", discarded: false }
+  ];
+  await option("youtubeExperimental", true);
+  assert.equal(injections.some(item => item.tabId === 30), false);
+  assert.ok(injections.some(item => item.tabId === 31 && item.world === "MAIN"));
 });
 test("inject failures do not roll back a successful settings change", async () => {
   injectFail = true;

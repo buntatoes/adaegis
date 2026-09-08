@@ -2,7 +2,10 @@
   // Hard-coded policy. No page message, remote list, or popup setting can widen it.
   const HOSTS = ["youtube.com", "www.youtube.com", "m.youtube.com"];
   const allowedHost = () => location.protocol === "https:" && !location.port && HOSTS.includes(location.hostname);
-  const allowedPage = () => allowedHost() &&
+  const sensitivePage = () =>
+    /^\/(account|signin|login|logout|paid_memberships|premium|purchase|reporthistory|embed)(\/|$)/.test(location.pathname);
+  const allowHooks = () => allowedHost() && !sensitivePage();
+  const allowInspect = () => allowHooks() &&
     (location.pathname === "/" || location.pathname === "/watch" ||
       /^\/shorts\/[A-Za-z0-9_-]{11}\/?$/.test(location.pathname));
   if (window.top !== window || !allowedHost()) return;
@@ -17,7 +20,8 @@
   const page = window as unknown as Record<string, unknown>;
   if (page[loaded]) return;
   page[loaded] = true;
-  let active = false;
+  let installed = false;
+  let observing = false;
   let wanted = true;
   let terminal = false;
   let pending: number | undefined;
@@ -34,7 +38,7 @@
     return descriptor && "value" in descriptor ? descriptor.value : undefined;
   }
   function clean(value: unknown): unknown {
-    if (!active || !allowedPage() || edits >= LIMITS.edits || !value || typeof value !== "object") return value;
+    if (!installed || !wanted || edits >= LIMITS.edits || !value || typeof value !== "object") return value;
     try {
       if (Object.getPrototypeOf(value) !== Object.prototype) return value;
       const descriptors = Object.getOwnPropertyDescriptors(value);
@@ -58,13 +62,25 @@
       return Object.create(Object.prototype, descriptors);
     } catch { return value; } // Accessors, proxies, or unfamiliar structures fail unchanged.
   }
-  function stop(reason = "disabled"): void {
-    if (!active) return;
-    active = false;
+  function setObserving(on: boolean): void {
+    if (on) {
+      if (observing) return;
+      observing = true;
+      observer.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "disabled", "aria-disabled"] });
+      inspect();
+      return;
+    }
+    if (!observing) return;
+    observing = false;
     observer.disconnect();
     if (pending !== undefined) clearTimeout(pending);
-    if (stallTimer !== undefined) clearTimeout(stallTimer);
     pending = undefined;
+  }
+  function stop(reason = "disabled"): void {
+    if (!installed) return;
+    installed = false;
+    setObserving(false);
+    if (stallTimer !== undefined) clearTimeout(stallTimer);
     stallTimer = undefined;
     window.removeEventListener("pagehide", onStop);
     document.removeEventListener("error", onError, true);
@@ -78,61 +94,62 @@
     if (document.documentElement) document.documentElement.dataset.adaegisYoutube = reason;
   }
   function start(): void {
-    if (active || terminal || !wanted || !allowedPage()) return;
-    active = true;
-    if (document.documentElement) delete document.documentElement.dataset.adaegisYoutube;
-    try {
-      const key = "ytInitialPlayerResponse";
-      const original = Object.getOwnPropertyDescriptor(window, key);
-      if (!original || (original.configurable && "value" in original && original.writable)) {
-        let value = clean(original?.value);
-        const getter = () => value;
-        const setter = (next: unknown) => { value = clean(next); };
-        Object.defineProperty(window, key, {
-          configurable: true, enumerable: original?.enumerable ?? true, get: getter, set: setter
-        });
-        restore.push(() => {
-          const installed = Object.getOwnPropertyDescriptor(window, key);
-          if (installed?.get !== getter || installed.set !== setter) return;
-          if (original) Object.defineProperty(window, key, { ...original, value });
-          else {
-            delete page[key];
-            if (value !== undefined) Object.defineProperty(window, key, {
-              configurable: true, enumerable: true, writable: true, value
-            });
-          }
-        });
-      }
-      const originalFetch = window.fetch;
-      const wrappedFetch: typeof fetch = async function(this: Window, input, init) {
-        // Exactly one original call. Never rewrite URLs, query parameters, methods,
-        // request bodies, credentials, or headers; never retry or issue extra requests.
-        const response = await originalFetch.call(this, input, init);
-        if (!active || !allowedPage()) return response;
-        try {
-          const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.href);
-          if (url.origin !== location.origin || url.pathname !== "/youtubei/v1/player" ||
-              response.redirected || (response.url && new URL(response.url).origin !== location.origin) ||
-              !response.ok || response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return response;
-          const json = response.json.bind(response);
-          response.json = async () => clean(await json());
-        } catch { /* Preserve unexpected response formats. */ }
-        return response;
-      };
-      window.fetch = wrappedFetch;
-      restore.push(() => { if (window.fetch === wrappedFetch) window.fetch = originalFetch; });
-      window.addEventListener("pagehide", onStop);
-      document.addEventListener("error", onError, true);
-      document.addEventListener("waiting", onWaiting, true);
-      document.addEventListener("playing", onPlaying, true);
-      observer.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "disabled", "aria-disabled"] });
-      inspect();
-    } catch { stop("initialization-error"); }
+    if (terminal || !wanted || !allowHooks()) return;
+    if (!installed) {
+      installed = true;
+      if (document.documentElement) delete document.documentElement.dataset.adaegisYoutube;
+      try {
+        const key = "ytInitialPlayerResponse";
+        const original = Object.getOwnPropertyDescriptor(window, key);
+        if (!original || (original.configurable && "value" in original && original.writable)) {
+          let value = clean(original?.value);
+          const getter = () => value;
+          const setter = (next: unknown) => { value = clean(next); };
+          Object.defineProperty(window, key, {
+            configurable: true, enumerable: original?.enumerable ?? true, get: getter, set: setter
+          });
+          restore.push(() => {
+            const installedHook = Object.getOwnPropertyDescriptor(window, key);
+            if (installedHook?.get !== getter || installedHook.set !== setter) return;
+            if (original) Object.defineProperty(window, key, { ...original, value });
+            else {
+              delete page[key];
+              if (value !== undefined) Object.defineProperty(window, key, {
+                configurable: true, enumerable: true, writable: true, value
+              });
+            }
+          });
+        }
+        const originalFetch = window.fetch;
+        const wrappedFetch: typeof fetch = async function(this: Window, input, init) {
+          // Exactly one original call. Never rewrite URLs, query parameters, methods,
+          // request bodies, credentials, or headers; never retry or issue extra requests.
+          const response = await originalFetch.call(this, input, init);
+          if (!installed || !wanted) return response;
+          try {
+            const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.href);
+            if (url.origin !== location.origin || url.pathname !== "/youtubei/v1/player" ||
+                response.redirected || (response.url && new URL(response.url).origin !== location.origin) ||
+                !response.ok || response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return response;
+            const json = response.json.bind(response);
+            response.json = async () => clean(await json());
+          } catch { /* Preserve unexpected response formats. */ }
+          return response;
+        };
+        window.fetch = wrappedFetch;
+        restore.push(() => { if (window.fetch === wrappedFetch) window.fetch = originalFetch; });
+        window.addEventListener("pagehide", onStop);
+        document.addEventListener("error", onError, true);
+        document.addEventListener("waiting", onWaiting, true);
+        document.addEventListener("playing", onPlaying, true);
+      } catch { stop("initialization-error"); return; }
+    }
+    setObserving(allowInspect());
   }
   function sync(): void {
     if (terminal) return;
-    if (wanted && allowedPage()) start();
-    else if (active) stop(wanted ? "unsupported-page" : "disabled");
+    if (wanted && allowHooks()) start();
+    else if (installed) stop(wanted ? "unsupported-page" : "disabled");
   }
   const onStop = () => stop();
   const inPlayer = (target: EventTarget | null): target is HTMLVideoElement =>
@@ -153,8 +170,12 @@
   };
   function inspect(): void {
     pending = undefined;
-    if (!active) return;
-    if (!allowedPage()) { stop("unsupported-page"); return; }
+    if (!installed || !wanted) return;
+    if (!allowInspect()) {
+      if (!allowHooks()) stop("unsupported-page");
+      else setObserving(false);
+      return;
+    }
     if (++scans > LIMITS.scans) { stop("scan-limit"); return; }
     const player = document.querySelector("#movie_player");
     if (!player) return;
@@ -180,7 +201,7 @@
     button.click();
   }
   const observer = new MutationObserver(() => {
-    if (active && pending === undefined) pending = window.setTimeout(inspect, LIMITS.scanDelayMs);
+    if (observing && pending === undefined) pending = window.setTimeout(inspect, LIMITS.scanDelayMs);
   });
   window.addEventListener("adaegis:youtube-stop", () => { wanted = false; stop(); });
   window.addEventListener("adaegis:youtube-start", () => { wanted = true; start(); });
