@@ -57,6 +57,14 @@ test("startup and future player responses lose only recognized ad arrays", () =>
   context.ytInitialPlayerResponse = fixture();
   assert.equal(context.ytInitialPlayerResponse.playerAds, undefined);
 });
+test("wrapped playerResponse on the initial payload loses only ad arrays", () => {
+  const nested = fixture();
+  const { context } = setup({ initial: { responseContext: { visitorData: "unchanged" }, playerResponse: nested } });
+  assert.equal(context.ytInitialPlayerResponse.responseContext.visitorData, "unchanged");
+  assert.equal(context.ytInitialPlayerResponse.playerResponse.adPlacements, undefined);
+  assert.equal(context.ytInitialPlayerResponse.playerResponse.streamingData.adaptiveFormats.length, 1);
+  assert.ok(nested.adPlacements);
+});
 test("unrelated objects and non-configurable fields pass through", () => {
   const unknown = { adPlacements: [1] };
   const { context } = setup({ initial: unknown });
@@ -77,7 +85,8 @@ test("fetch modification is restricted to same-origin player JSON", async () => 
   const { context } = setup();
   const target = await context.fetch("/youtubei/v1/player?key=test");
   assert.equal((await target.json()).adSlots, undefined);
-  for (const url of ["/youtubei/v1/browse", "https://evil.test/youtubei/v1/player", "/api/player"]) {
+  for (const url of ["/youtubei/v1/browse", "https://evil.test/youtubei/v1/player", "/api/player",
+    "/youtubei/v1/player/ad_break"]) {
     const response = await context.fetch(url);
     assert.ok((await response.json()).adSlots);
   }
@@ -347,4 +356,47 @@ test("redirected player responses are left untouched", async () => {
     return response;
   } });
   assert.ok((await (await context.fetch("/youtubei/v1/player")).json()).adSlots);
+});
+test("player requests with a trailing slash are still cleaned", async () => {
+  const { context } = setup();
+  assert.equal((await (await context.fetch("/youtubei/v1/player/")).json()).adSlots, undefined);
+});
+test("get_watch nested playerResponse loses only ad arrays", async () => {
+  const nested = fixture();
+  const { context } = setup({ fetchImpl: async () => new Response(JSON.stringify({
+    responseContext: { visitorData: "unchanged" }, playerResponse: nested
+  }), { headers: { "content-type": "application/json" } }) });
+  const body = await (await context.fetch("/youtubei/v1/get_watch")).json();
+  assert.equal(body.responseContext.visitorData, "unchanged");
+  assert.equal(body.playerResponse.adPlacements, undefined);
+  assert.equal(body.playerResponse.streamingData.adaptiveFormats.length, 1);
+  assert.ok(nested.adPlacements);
+  assert.equal((await (await context.fetch("/youtubei/v1/get_watch?prettyPrint=false")).json()).playerResponse.playerAds, undefined);
+});
+test("browse responses with a nested playerResponse are left untouched", async () => {
+  const nested = fixture();
+  const { context } = setup({ fetchImpl: async () => new Response(JSON.stringify({
+    playerResponse: nested
+  }), { headers: { "content-type": "application/json" } }) });
+  const body = await (await context.fetch("/youtubei/v1/browse")).json();
+  assert.ok(body.playerResponse.adSlots);
+  assert.ok(nested.adSlots);
+});
+test("yt-navigate-start from search onto watch keeps the same hooks", async () => {
+  const { context, events, originalFetch } = setup({ url: "https://www.youtube.com/results?search_query=test" });
+  const wrapped = context.fetch;
+  assert.notEqual(wrapped, originalFetch);
+  context.location = new URL("https://www.youtube.com/watch?v=Abc12345678");
+  events.get("yt-navigate-start")();
+  assert.equal(context.fetch, wrapped);
+});
+test("watch with a trailing slash still clicks Skip", () => {
+  const button = new Button();
+  const player = { classList: { contains: () => true }, querySelector: s => s === ".ytp-error" ? null : button };
+  const { observers, timers } = setup({
+    url: "https://www.youtube.com/watch/?v=Abc12345678", player
+  });
+  observers[0].callback();
+  timers.get(1)();
+  assert.equal(button.clicks, 1);
 });

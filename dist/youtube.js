@@ -3,12 +3,19 @@
   // Hard-coded policy. No page message, remote list, or popup setting can widen it.
   const HOSTS = ["youtube.com", "www.youtube.com", "m.youtube.com"];
   const allowedHost = () => location.protocol === "https:" && !location.port && HOSTS.includes(location.hostname);
+  const pagePath = () => location.pathname.replace(/\/$/, "") || "/";
   const sensitivePage = () =>
     /^\/(account|signin|login|logout|paid_memberships|premium|purchase|reporthistory|embed)(\/|$)/.test(location.pathname);
   const allowHooks = () => allowedHost() && !sensitivePage();
-  const allowInspect = () => allowHooks() &&
-    (location.pathname === "/" || location.pathname === "/watch" ||
-      /^\/shorts\/[A-Za-z0-9_-]{11}\/?$/.test(location.pathname));
+  const allowInspect = () => {
+    if (!allowHooks()) return false;
+    const path = pagePath();
+    return path === "/" || path === "/watch" || /^\/shorts\/[A-Za-z0-9_-]{11}$/.test(path);
+  };
+  const playerPath = (path        ) => {
+    const normalized = path.replace(/\/$/, "") || "/";
+    return normalized === "/youtubei/v1/player" || normalized === "/youtubei/v1/get_watch";
+  };
   if (window.top !== window || !allowedHost()) return;
   const LIMITS = Object.freeze({
     edits: 200, scans: 10000, clicks: 100, clicksPerMinute: 10,
@@ -38,7 +45,7 @@
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     return descriptor && "value" in descriptor ? descriptor.value : undefined;
   }
-  function clean(value         )          {
+  function clean(value         , depth = 0)          {
     if (!installed || !wanted || edits >= LIMITS.edits || !value || typeof value !== "object") return value;
     try {
       if (Object.getPrototypeOf(value) !== Object.prototype) return value;
@@ -47,20 +54,26 @@
           Object.values(descriptors).some(item => !("value" in item))) return value;
       const videoId = dataProperty(descriptors.videoDetails?.value, "videoId");
       const status = dataProperty(descriptors.playabilityStatus?.value, "status");
-      if (typeof videoId !== "string" || !/^[A-Za-z0-9_-]{11}$/.test(videoId) || status !== "OK") return value;
-      let changed = false;
-      for (const key of ["adPlacements", "playerAds", "adSlots"]) {
-        const descriptor = descriptors[key];
-        if (descriptor?.configurable && Array.isArray(descriptor.value)) {
-          delete descriptors[key];
-          changed = true;
+      if (typeof videoId === "string" && /^[A-Za-z0-9_-]{11}$/.test(videoId) && status === "OK") {
+        let changed = false;
+        for (const key of ["adPlacements", "playerAds", "adSlots"]) {
+          const descriptor = descriptors[key];
+          if (descriptor?.configurable && Array.isArray(descriptor.value)) {
+            delete descriptors[key];
+            changed = true;
+          }
         }
+        if (!changed) return value;
+        edits++;
+        // A shallow copy changes only the three ad fields. Auth, playback status,
+        // video URLs, signatures, DRM, and every other property retain their values.
+        return Object.create(Object.prototype, descriptors);
       }
-      if (!changed) return value;
-      edits++;
-      // A shallow copy changes only the three ad fields. Auth, playback status,
-      // video URLs, signatures, DRM, and every other property retain their values.
-      return Object.create(Object.prototype, descriptors);
+      const nested = descriptors.playerResponse;
+      if (depth > 0 || !nested?.configurable || !("value" in nested)) return value;
+      const cleaned = clean(nested.value, depth + 1);
+      if (cleaned === nested.value) return value;
+      return Object.create(Object.prototype, { ...descriptors, playerResponse: { ...nested, value: cleaned } });
     } catch { return value; } // Accessors, proxies, or unfamiliar structures fail unchanged.
   }
   function setObserving(on         )       {
@@ -129,7 +142,7 @@
           if (!installed || !wanted) return response;
           try {
             const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.href);
-            if (url.origin !== location.origin || url.pathname !== "/youtubei/v1/player" ||
+            if (url.origin !== location.origin || !playerPath(url.pathname) ||
                 response.redirected || (response.url && new URL(response.url).origin !== location.origin) ||
                 !response.ok || response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return response;
             const json = response.json.bind(response);
@@ -206,8 +219,10 @@
   });
   window.addEventListener("adaegis:youtube-stop", () => { wanted = false; stop(); });
   window.addEventListener("adaegis:youtube-start", () => { wanted = true; start(); });
-  document.addEventListener("yt-navigate-finish", sync);
-  window.addEventListener("yt-navigate-finish", sync);
+  for (const name of ["yt-navigate-finish", "yt-navigate-start", "yt-page-data-updated"]) {
+    document.addEventListener(name, sync);
+    window.addEventListener(name, sync);
+  }
   window.addEventListener("popstate", sync);
   const navigation = (window                                         ).navigation;
   if (navigation && typeof navigation.addEventListener === "function") {

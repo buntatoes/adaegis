@@ -2,6 +2,18 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.3.4 — 2026-09-08
+
+Follow-up to 0.3.3 for click-throughs that could still miss player data.
+
+### Fixed
+
+- Player data sent on `/youtubei/v1/get_watch`, on a trailing slash, or nested under `playerResponse` is cleaned the same way
+- Skip still runs if watch or Shorts has a trailing slash
+- In-page navigation also follows YouTube's start and page-data events, not only the finish event
+
+Playback errors, stalls, and the scan limit still stay off until you reload.
+
 ## 0.3.3 — 2026-09-08
 
 Bug fixes for 0.3.2.
