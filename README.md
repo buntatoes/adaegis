@@ -6,13 +6,13 @@
 
 A small ad blocker for desktop Chrome and Chromium 120+. Network blocking is on by default. Page cleanup and YouTube filtering are optional and start off.
 
-**0.3.4** is the current public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
+**0.4.0** is the current public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
 
 [Install](#install) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [License](LICENSE)
 
 ## Install
 
-Download **[adaegis-v0.3.4-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
+Download **[adaegis-v0.4.0-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
 
 1. Extract the ZIP and keep the **AdAegis** folder somewhere permanent, such as Documents.
 2. Open `chrome://extensions`.
@@ -26,12 +26,13 @@ Chrome loads the extension from that folder. Leave it where it is. To update, co
 ## Features
 
 - Bundled network rules for common ad-tech domains, on by default
-- Pause switch and up to 200 exact-hostname exceptions
+- Pause until you turn it back on, or for 10 minutes or 1 hour
+- Up to 200 exact-hostname exceptions, listed and editable in the popup
 - Optional page cleanup that hides recognized ad containers
-- Optional experimental YouTube player filtering
+- Optional experimental YouTube and YouTube Music player filtering
 - Settings stay on your computer: no account, no telemetry, no remote filter list, no auto-update
 
-Basic blocking does not need access to the pages you visit. Page cleanup asks for HTTP/HTTPS access. YouTube filtering asks only for YouTube.
+Basic blocking does not need access to the pages you visit. Page cleanup asks for HTTP/HTTPS access. YouTube filtering asks only for YouTube. Music filtering asks only for YouTube Music.
 
 ## YouTube filtering
 
@@ -42,7 +43,9 @@ Off by default. If you enable it, Chrome will ask for YouTube access. On home, w
 
 Clicks from home, search, or a channel to a video stay in that same page. Player filtering stays ready on those YouTube pages so the next video is not missed. Skip clicks still only happen on home, watch, and Shorts. Account and billing URLs are left alone.
 
-A video that was already playing when you turned the experiment on may need a reload or the next video. It will not catch every ad, and it can break playback. If that happens, turn it off and reload.
+A stall or error on one video no longer turns the experiment off for the next video in that same page. A video that was already playing when you turned the experiment on may still need a reload. It will not catch every ad, and it can break playback. If that happens, turn it off and reload.
+
+YouTube Music is a separate switch. It asks only for `music.youtube.com` and uses the same conservative edits.
 
 ## Build from source
 

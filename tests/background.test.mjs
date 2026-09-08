@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-let installed, startup, listener, permissionsRemoved;
+let installed, startup, listener, permissionsRemoved, alarmListener;
 let data = { enabled: false };
 let enabledRules = ["core"], dynamic = [], scripts = [];
 let rejectRulesOnce = false, rejectStorageOnce = false, restricted = false;
-let cosmeticAccess = false, youtubeAccess = false;
-let openTabs = [], injections = [], injectFail = false;
+let cosmeticAccess = false, youtubeAccess = false, musicAccess = false;
+let openTabs = [], injections = [], injectFail = false, alarms = [], badge = "";
 const chrome = globalThis.chrome = {
   runtime: {
     id: "test-extension", getURL: path => "chrome-extension://test-extension/" + path,
@@ -14,7 +14,11 @@ const chrome = globalThis.chrome = {
     onMessage: { addListener: f => { listener = f; } }
   },
   permissions: {
-    contains: async ({ origins }) => origins.includes("https://*/*") ? cosmeticAccess : youtubeAccess,
+    contains: async ({ origins }) => {
+      if (origins.includes("https://*/*")) return cosmeticAccess;
+      if (origins.includes("https://music.youtube.com/*")) return musicAccess;
+      return youtubeAccess;
+    },
     onRemoved: { addListener: f => { permissionsRemoved = f; } }
   },
   storage: { local: {
@@ -50,7 +54,12 @@ const chrome = globalThis.chrome = {
       injections.push({ tabId: opts.target.tabId, files: [...opts.files], world: opts.world, allFrames: opts.target.allFrames, injectImmediately: opts.injectImmediately });
     }
   },
-  action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
+  action: { setBadgeText: async ({ text }) => { badge = text; }, setBadgeBackgroundColor: async () => {} },
+  alarms: {
+    create: async (name, info) => { alarms = [{ name, ...info }]; },
+    clear: async name => { alarms = alarms.filter(item => item.name !== name); return true; },
+    onAlarm: { addListener: f => { alarmListener = f; } }
+  },
   tabs: {
     get: async id => ({ id, active: id === 1, url: "https://www.youtube.com/watch?v=Abc12345678" }),
     query: async () => openTabs,
@@ -80,7 +89,7 @@ test("pause controls DNR without requiring page permissions", async () => {
   assert.deepEqual(enabledRules, []);
 });
 test("enabling page features without grants is rejected", async () => {
-  for (const key of ["cosmetic", "youtubeExperimental"]) assert.equal((await option(key, true)).ok, false);
+  for (const key of ["cosmetic", "youtubeExperimental", "youtubeMusicExperimental"]) assert.equal((await option(key, true)).ok, false);
   assert.deepEqual(scripts, []);
 });
 test("YouTube-only grant enables MAIN and isolated control scripts only", async () => {
@@ -90,7 +99,7 @@ test("YouTube-only grant enables MAIN and isolated control scripts only", async 
   await option("enabled", true);
   assert.equal(experiment().world, "MAIN");
   assert.equal(experiment().runAt, "document_start");
-  assert.ok(experiment().matches.every(p => p.includes("youtube.com")));
+  assert.deepEqual(experiment().matches, ["https://www.youtube.com/*", "https://m.youtube.com/*", "https://youtube.com/*"]);
   assert.equal(scripts.find(s => s.id === "youtube-control").world, "ISOLATED");
   assert.equal(scripts.some(s => s.id === "page-cleanup"), false);
 });
@@ -134,7 +143,9 @@ test("strict schema rejects extra fields, prototype keys and invalid tab IDs", a
     { type: "set-option", key: "enabled", value: "false" },
     { type: "set-option", key: "enabled", value: true, script: "anything" },
     { type: "set-site", allowed: true, tabId: -1 },
-    { type: "set-site", allowed: true, tabId: 1.2 }
+    { type: "set-site", allowed: true, tabId: 1.2 },
+    { type: "set-host", host: "example.com", allowed: true, extra: 1 },
+    { type: "set-pause", minutes: 10, extra: 1 }
   ]) assert.equal((await send(message)).ok, false);
 });
 test("API and storage failures roll back configuration", async () => {
@@ -148,10 +159,11 @@ test("API and storage failures roll back configuration", async () => {
   assert.deepEqual(enabledRules, ["core"]);
 });
 test("permission revocation switches features off and removes scripts", async () => {
-  cosmeticAccess = false; youtubeAccess = false;
+  cosmeticAccess = false; youtubeAccess = false; musicAccess = false;
   permissionsRemoved(); await drain();
   assert.equal(data.cosmetic, false);
   assert.equal(data.youtubeExperimental, false);
+  assert.equal(data.youtubeMusicExperimental, false);
   assert.deepEqual(scripts, []);
 });
 test("serialized settings and startup preserve the final state", async () => {
@@ -244,4 +256,70 @@ test("inject failures do not roll back a successful settings change", async () =
   assert.equal(result.ok, true);
   assert.equal(data.enabled, true);
   assert.ok(scripts.some(script => script.id === "youtube-experiment"));
+});
+test("set-host manages exceptions without an active tab", async () => {
+  await send({ type: "set-host", host: "ads.example", allowed: true });
+  assert.ok(data.allowlist.includes("ads.example"));
+  assert.equal((await send({ type: "set-host", host: "*.example", allowed: true })).ok, false);
+  await send({ type: "set-host", host: "ads.example", allowed: false });
+  assert.equal(data.allowlist.includes("ads.example"), false);
+});
+test("timed pause disables rules, sets a resume alarm, and restores on alarm", async () => {
+  await option("enabled", true);
+  assert.equal(badge, "");
+  const result = await send({ type: "set-pause", minutes: 10 });
+  assert.equal(result.ok, true);
+  assert.equal(data.enabled, false);
+  assert.ok(data.pauseUntil > Date.now());
+  assert.deepEqual(enabledRules, []);
+  assert.equal(badge, "10m");
+  assert.equal(alarms[0].name, "adaegis-resume");
+  assert.equal((await send({ type: "set-pause", minutes: 15 })).ok, false);
+  alarmListener({ name: "adaegis-resume" });
+  await drain();
+  assert.equal(data.enabled, true);
+  assert.equal(data.pauseUntil, 0);
+  assert.deepEqual(enabledRules, ["core"]);
+  assert.equal(badge, "");
+  assert.deepEqual(alarms, []);
+});
+test("indefinite pause shows OFF and does not resume from a stale alarm", async () => {
+  await option("enabled", false);
+  assert.equal(data.pauseUntil, 0);
+  assert.equal(badge, "OFF");
+  assert.deepEqual(alarms, []);
+  alarmListener({ name: "adaegis-resume" });
+  await drain();
+  assert.equal(data.enabled, false);
+});
+test("YouTube Music is a separate grant and does not ride on www YouTube", async () => {
+  youtubeAccess = true;
+  musicAccess = false;
+  await option("enabled", true);
+  await option("youtubeExperimental", true);
+  await option("youtubeMusicExperimental", false);
+  assert.ok(!experiment().matches.includes("https://music.youtube.com/*"));
+  assert.equal((await option("youtubeMusicExperimental", true)).ok, false);
+  musicAccess = true;
+  injections = [];
+  openTabs = [
+    { id: 40, url: "https://www.youtube.com/watch?v=Abc12345678", discarded: false },
+    { id: 41, url: "https://music.youtube.com/watch?v=Abc12345678", discarded: false }
+  ];
+  await option("youtubeMusicExperimental", true);
+  assert.ok(experiment().matches.includes("https://music.youtube.com/*"));
+  assert.ok(injections.some(item => item.tabId === 41 && item.world === "MAIN"));
+  const musicPage = {
+    id: chrome.runtime.id, url: "https://music.youtube.com/watch?v=Abc12345678",
+    origin: "https://music.youtube.com", frameId: 0, tab: { id: 41 }
+  };
+  assert.deepEqual(await send({ type: "page-policy" }, musicPage), { ok: true, cosmetic: false, youtube: true });
+  await option("youtubeMusicExperimental", false);
+  assert.deepEqual(await send({ type: "page-policy" }, musicPage), { ok: true, cosmetic: false, youtube: false });
+  await option("youtubeExperimental", false);
+  injections = [];
+  await option("youtubeMusicExperimental", true);
+  assert.deepEqual(experiment().matches, ["https://music.youtube.com/*"]);
+  assert.equal(injections.some(item => item.tabId === 40), false);
+  assert.ok(injections.some(item => item.tabId === 41 && item.world === "MAIN"));
 });

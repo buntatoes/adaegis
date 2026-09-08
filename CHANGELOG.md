@@ -2,6 +2,24 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.4.0 — 2026-09-08
+
+Exception list and timed pause in the popup, YouTube Music as its own grant, and player replies that are not only `response.json()`.
+
+### Added
+
+- Site exceptions can be listed, removed, and typed in by hostname in the popup
+- Pause 10 minutes or 1 hour. The toolbar badge shows remaining time, and protection comes back even if Chrome has put the worker to sleep
+- YouTube Music filtering, off by default. Chrome asks only for `music.youtube.com`
+- Player JSON is also cleaned when the page reads `text()` or loads the same `/player` and `/get_watch` URLs with XHR
+
+### Changed
+
+- A stall, player error, or scan cap on one YouTube video no longer leaves the experiment off for the next video in that same page
+- Skip still only runs on home, watch, and Shorts on youtube.com. On Music it can run on ordinary Music pages. Account and billing URLs are still left alone
+
+Turning the experiment off in the popup still stops it. A video that is already playing when you turn filtering on may still need a reload.
+
 ## 0.3.4 — 2026-09-08
 
 Follow-up to 0.3.3 for click-throughs that could still miss player data.
