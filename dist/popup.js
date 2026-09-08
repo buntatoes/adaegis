@@ -41,7 +41,7 @@ async function main()                {
     try {
       if (permission && !(await permission)) throw new Error("Site access was declined. The feature stays off.");
       state = await request(message);
-      notice.textContent = "Saved. Reload after a site exception, or if YouTube filtering was not already running on this tab.";
+      notice.textContent = "Saved. Open tabs pick this up. Reload if a YouTube video is already playing, or if you need blocked ads to load again.";
     } catch (error) {
       notice.textContent = error instanceof Error ? error.message : "Could not save.";
     } finally { busy = false; render(); }

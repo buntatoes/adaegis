@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 globalThis.chrome = { declarativeNetRequest: {
   RuleActionType: { ALLOW_ALL_REQUESTS: "allowAllRequests" }, ResourceType: { MAIN_FRAME: "main_frame" }
 } };
-const { normalize, hostname, exceptionRules } = await import("../dist/settings.js");
+const { normalize, hostname, exceptionRules, matchesPattern } = await import("../dist/settings.js");
 
 test("safe defaults; experiment is opt-in", () => {
   assert.deepEqual(normalize({}), { enabled: true, cosmetic: false, youtubeExperimental: false, allowlist: [] });
@@ -18,6 +18,17 @@ test("unsupported pages never produce a site exception", () => {
     assert.equal(hostname(url), null);
   }
   assert.equal(hostname("https://EXAMPLE.com:8443/watch?v=1"), "example.com");
+});
+test("match patterns cover only http(s) hosts this extension registers", () => {
+  assert.equal(matchesPattern("https://news.example/a", "https://*/*"), true);
+  assert.equal(matchesPattern("http://news.example/a", "http://*/*"), true);
+  assert.equal(matchesPattern("https://news.example/a", "http://*/*"), false);
+  assert.equal(matchesPattern("https://www.youtube.com/watch", "https://www.youtube.com/*"), true);
+  assert.equal(matchesPattern("https://m.youtube.com/", "https://www.youtube.com/*"), false);
+  assert.equal(matchesPattern("https://www.youtube.com.evil.test/", "https://www.youtube.com/*"), false);
+  assert.equal(matchesPattern("chrome://extensions", "*://*/*"), false);
+  assert.equal(matchesPattern("https://news.example/", "*://news.example/*"), true);
+  assert.equal(matchesPattern("https://evil.news.example/", "*://news.example/*"), false);
 });
 test("exception regex matches exact host and ports, not suffixes or subdomains", () => {
   const [rule] = exceptionRules(["example.com"]);

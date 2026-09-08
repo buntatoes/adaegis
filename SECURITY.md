@@ -1,6 +1,6 @@
 # Security
 
-AdAegis 0.3.1 is an early public release. It is not an audited security product.
+AdAegis 0.3.2 is an early public release. It is not an audited security product.
 
 ## Permissions
 
@@ -12,6 +12,8 @@ AdAegis 0.3.1 is an early public release. It is not an audited security product.
 Settings are stored locally and can only be changed from this extension's popup. Page scripts receive two booleans for that page (cleanup and YouTube), not your exception list.
 
 The extension does not use `externally_connectable`, web-accessible resources, native messaging, the debugger, proxy, cookies, a broad `tabs` permission, remote scripts, `eval`, or downloads of executables. Extension pages cannot make network requests or run inline scripts.
+
+Turning on page cleanup or YouTube filtering injects the matching scripts into open tabs you have already granted. That uses the same host access as a later page load. Restricted pages (browser UI, the Chrome Web Store, and similar) are skipped.
 
 ## YouTube experiment
 
@@ -28,12 +30,12 @@ Limits are compiled into the extension. A website cannot raise them.
 | Skip budget | Once per element, ≥2 seconds apart, ≤10 per minute, ≤100 per page |
 | DOM scans | Coalesced at 250 ms; stop after 10,000 per page |
 | Cosmetic CSS | Stop after 10 insertions. Does not stop YouTube filtering. |
-| Pause | Turning the experiment off, hiding the page, or leaving an allowed YouTube URL. Can start again if the feature is still enabled. |
+| Pause | Turning the experiment off, hiding the page, or leaving home/watch/Shorts. Can start again on those pages if the feature is still enabled. |
 | Give up until reload | Player/video errors, 15-second unpaused stall, or 10,000 DOM scans |
 
 Original fetch arguments are forwarded once. AdAegis does not retry, spoof login or ad-completion events, or change stream URLs, signatures, DRM, or playability. Unknown shapes are left alone.
 
-Network rules only block the eight listed ad-tech domains, plus exact-hostname allow exceptions. There are no redirect or header-rewrite rules.
+Network rules only block the ad-tech hosts in `rules/core.json`, plus exact-hostname allow exceptions. There are no redirect or header-rewrite rules. YouTube, `googlevideo.com`, and other Google site/media hosts are not in that list.
 
 ## What this does not cover
 

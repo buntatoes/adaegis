@@ -6,11 +6,36 @@
   const generic = [
     "ins.adsbygoogle",
     'iframe[src^="https://googleads.g.doubleclick.net/"]',
-    'iframe[src^="https://tpc.googlesyndication.com/"]'
+    'iframe[src^="https://tpc.googlesyndication.com/"]',
+    'iframe[src^="https://pagead2.googlesyndication.com/"]',
+    'iframe[src^="https://securepubads.g.doubleclick.net/"]',
+    'iframe[id^="google_ads_iframe_"]',
+    'div[id^="div-gpt-ad"]',
+    'iframe[src^="https://secure.adnxs.com/"]',
+    'iframe[src^="https://s.amazon-adsystem.com/"]',
+    'iframe[src^="https://ads.pubmatic.com/"]',
+    'div[id^="taboola-"]',
+    ".OUTBRAIN"
   ];
-  const youtube = ["ytd-ad-slot-renderer", "ytd-in-feed-ad-layout-renderer",
-    "ytd-promoted-sparkles-web-renderer", "ytd-promoted-video-renderer",
-    "ytd-display-ad-renderer", "ytd-banner-promo-renderer", "ytd-action-companion-ad-renderer"];
+  const youtube = [
+    "ytd-ad-slot-renderer",
+    "ytd-in-feed-ad-layout-renderer",
+    "ytd-promoted-sparkles-web-renderer",
+    "ytd-promoted-sparkles-text-search-renderer",
+    "ytd-promoted-video-renderer",
+    "ytd-compact-promoted-video-renderer",
+    "ytd-promoted-companion-ad-renderer",
+    "ytd-display-ad-renderer",
+    "ytd-banner-promo-renderer",
+    "ytd-action-companion-ad-renderer",
+    "ytd-player-legacy-desktop-watch-ads-renderer",
+    "ytm-promoted-video-renderer",
+    "ytm-companion-ad-renderer",
+    "ytd-rich-item-renderer:has(ytd-ad-slot-renderer)",
+    "ytd-video-renderer:has(ytd-ad-slot-renderer)",
+    "ytd-reel-video-renderer[is-ad]",
+    "masthead-ad"
+  ];
   const isYoutube = location.protocol === "https:" && !location.port &&
     ["www.youtube.com", "m.youtube.com", "youtube.com"].includes(location.hostname);
   const style = document.createElement("style");

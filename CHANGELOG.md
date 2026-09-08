@@ -2,6 +2,23 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.3.2 — 2026-09-08
+
+Page cleanup and YouTube filtering on tabs that are already open, YouTube in-page navigation, and a larger bundled block list.
+
+### Added
+
+- Page cleanup can start on HTTP and HTTPS tabs you already have open
+- YouTube filtering can start on an open YouTube tab instead of waiting for a reload
+- YouTube filtering follows in-page navigation between home, watch, and Shorts, and can start again after you leave a search or channel page and come back
+
+### Changed
+
+- Bundled network rules grew from 8 to 24 well-known ad-tech hosts. Still no remote lists, and YouTube media hosts stay unblocked
+- Page cleanup hides additional known ad slots, including Google ad boxes, Taboola, Outbrain, and more YouTube ad units
+
+A video that is already playing when you turn YouTube filtering on may still need a reload or the next video. Playback errors, stalls, and the scan limit still stay off until you reload.
+
 ## 0.3.1 — 2026-09-08
 
 Patch on the first public release.

@@ -267,6 +267,61 @@ test("start is a no-op on an unsupported route", () => {
   events.get("adaegis:youtube-start")();
   assert.equal(context.fetch, originalFetch);
 });
+test("in-page navigation from search onto watch installs hooks", async () => {
+  const { context, events, originalFetch } = setup({ url: "https://www.youtube.com/results?search_query=test" });
+  assert.equal(context.fetch, originalFetch);
+  assert.ok(context.ytInitialPlayerResponse.adSlots);
+  context.location = new URL("https://www.youtube.com/watch?v=Abc12345678");
+  events.get("yt-navigate-finish")();
+  assert.notEqual(context.fetch, originalFetch);
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adSlots, undefined);
+  const next = fixture();
+  context.ytInitialPlayerResponse = next;
+  assert.equal(context.ytInitialPlayerResponse.adPlacements, undefined);
+});
+test("popstate off an allowed page restores hooks and returning reinstalls them", async () => {
+  const { context, events, originalFetch } = setup();
+  context.location = new URL("https://www.youtube.com/channel/UC1234567890");
+  events.get("popstate")();
+  assert.equal(context.fetch, originalFetch);
+  assert.equal(context.document.documentElement.dataset.adaegisYoutube, "unsupported-page");
+  context.location = new URL("https://www.youtube.com/watch?v=Abc12345678");
+  events.get("popstate")();
+  assert.notEqual(context.fetch, originalFetch);
+  assert.equal(context.document.documentElement.dataset.adaegisYoutube, undefined);
+});
+test("home to watch does not tear down existing hooks", () => {
+  const { context, events, originalFetch } = setup({ url: "https://www.youtube.com/" });
+  const wrapped = context.fetch;
+  assert.notEqual(wrapped, originalFetch);
+  context.location = new URL("https://www.youtube.com/watch?v=Abc12345678");
+  events.get("yt-navigate-finish")();
+  assert.equal(context.fetch, wrapped);
+});
+test("Shorts after in-page navigation is eligible", async () => {
+  const { context, events, originalFetch } = setup({ url: "https://www.youtube.com/results?search_query=test" });
+  assert.equal(context.fetch, originalFetch);
+  context.location = new URL("https://www.youtube.com/shorts/Abc12345678");
+  events.get("yt-navigate-finish")();
+  assert.notEqual(context.fetch, originalFetch);
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adSlots, undefined);
+});
+test("playback errors ignore later in-page navigation", () => {
+  const { context, events, originalFetch, Video } = setup();
+  events.get("error")({ target: new Video() });
+  context.location = new URL("https://www.youtube.com/shorts/Abc12345678");
+  events.get("yt-navigate-finish")();
+  assert.equal(context.fetch, originalFetch);
+});
+test("a stop signal blocks navigation from starting hooks until start", () => {
+  const { context, events, originalFetch } = setup({ url: "https://www.youtube.com/results?search_query=test" });
+  events.get("adaegis:youtube-stop")();
+  context.location = new URL("https://www.youtube.com/watch?v=Abc12345678");
+  events.get("yt-navigate-finish")();
+  assert.equal(context.fetch, originalFetch);
+  events.get("adaegis:youtube-start")();
+  assert.notEqual(context.fetch, originalFetch);
+});
 test("redirected player responses are left untouched", async () => {
   const { context } = setup({ fetchImpl: async () => {
     const response = new Response(JSON.stringify(fixture()), { headers: { "content-type": "application/json" } });

@@ -39,14 +39,24 @@ test("all committed JS is built from TypeScript, not manually maintained", async
 test("content scripts parse as classic scripts", async () => {
   for (const path of ["dist/content.js", "dist/youtube.js"]) new vm.Script(await read(path));
 });
-test("starter rules use unique IDs and do not block YouTube media domains", async () => {
+test("starter rules use unique IDs, host-only filters, and do not block YouTube media domains", async () => {
   const rules = JSON.parse(await read("rules/core.json"));
+  assert.equal(rules.length, 24);
   assert.equal(new Set(rules.map(rule => rule.id)).size, rules.length);
+  const hosts = new Set();
   for (const rule of rules) {
     assert.equal(rule.action.type, "block");
     assert.ok(rule.priority < 100);
+    assert.match(rule.condition.urlFilter, /^\|\|[a-z0-9.-]+\^$/);
+    assert.equal(hosts.has(rule.condition.urlFilter), false);
+    hosts.add(rule.condition.urlFilter);
     assert.ok(!rule.condition.urlFilter.includes("youtube.com"));
     assert.ok(!rule.condition.urlFilter.includes("googlevideo.com"));
+    assert.ok(!rule.condition.urlFilter.includes("ytimg.com"));
+    assert.ok(!rule.condition.urlFilter.includes("gstatic.com"));
+    assert.ok(!rule.condition.urlFilter.includes("googleapis.com"));
     assert.ok(!rule.condition.resourceTypes.includes("main_frame"));
+    assert.ok(!rule.condition.resourceTypes.includes("media"));
+    assert.deepEqual(rule.condition.resourceTypes, ["script", "image", "xmlhttprequest", "sub_frame"]);
   }
 });
