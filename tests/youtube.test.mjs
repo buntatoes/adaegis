@@ -21,11 +21,12 @@ function setup({ initial = fixture(), player = null, fetchImpl, descriptor,
   const timers = new Map();
   const observers = [];
   let now = 10000;
-  class Video { closest() { return {}; } paused = false; readyState = 1; }
+  class Video { closest() { return {}; } paused = false; readyState = 1; duration = NaN; currentTime = 0; playbackRate = 1; muted = false; }
   const originalFetch = fetchImpl ?? (async () => new Response(JSON.stringify(fixture()), { headers: { "content-type": "application/json" } }));
   const context = {
     location: new URL(url),
-    URL, URLSearchParams, JSON, Request, Response, Event, Object, TextEncoder, HTMLVideoElement: Video, HTMLButtonElement: Button,
+    URL, URLSearchParams, Request, Response, Event, Object, TextEncoder, Blob, HTMLVideoElement: Video, HTMLButtonElement: Button,
+    JSON: { parse: JSON.parse.bind(JSON), stringify: JSON.stringify.bind(JSON) },
     Date: { now: () => now },
     document: {
       documentElement: { dataset: {} }, querySelector: () => player,
@@ -71,10 +72,10 @@ test("wrapped playerResponse on the initial payload loses only ad arrays", () =>
   assert.ok(nested.adPlacements);
 });
 test("unrelated objects and non-configurable fields pass through", () => {
-  const unknown = { adPlacements: [1] };
+  const unknown = { unknownAds: [1] };
   const { context } = setup({ initial: unknown });
   assert.equal(context.ytInitialPlayerResponse, unknown);
-  assert.deepEqual(unknown.adPlacements, [1]);
+  assert.deepEqual(unknown.unknownAds, [1]);
   const frozen = Object.freeze(fixture());
   context.ytInitialPlayerResponse = frozen;
   assert.ok(frozen.adPlacements);
@@ -90,11 +91,11 @@ test("fetch modification is restricted to same-origin player JSON", async () => 
   const { context } = setup();
   const target = await context.fetch("/youtubei/v1/player?key=test");
   assert.equal((await target.json()).adSlots, undefined);
-  for (const url of ["/youtubei/v1/browse", "https://evil.test/youtubei/v1/player", "/api/player",
-    "/youtubei/v1/player/ad_break"]) {
+  for (const url of ["/youtubei/v1/browse", "https://evil.test/youtubei/v1/player", "/api/player"]) {
     const response = await context.fetch(url);
     assert.ok((await response.json()).adSlots);
   }
+  assert.equal((await (await context.fetch("/youtubei/v1/player/ad_break")).json()).adSlots, undefined);
 });
 test("fetch rejection is preserved and text() is cleaned on player JSON", async () => {
   const { context } = setup({ fetchImpl: async () => { throw Error("offline"); } });
@@ -527,4 +528,82 @@ test("same-origin player XHR JSON loses only ad arrays", () => {
   browse.open("POST", "/youtubei/v1/browse");
   browse.send();
   assert.ok(JSON.parse(browse.responseText).adSlots);
+});
+test("JSON.parse of player JSON and ad-only payloads lose ad fields", () => {
+  const { context } = setup();
+  const body = context.JSON.parse(JSON.stringify(fixture()));
+  assert.equal(body.adPlacements, undefined);
+  assert.equal(body.streamingData.adaptiveFormats.length, 1);
+  const adsOnly = context.JSON.parse(JSON.stringify({ adPlacements: [{}], playerAds: [{}], adSlots: [{}] }));
+  assert.equal(adsOnly.adPlacements, undefined);
+  assert.equal(adsOnly.playerAds, undefined);
+  assert.equal(context.JSON.parse(JSON.stringify({ comments: [1] })).comments[0], 1);
+});
+test("ad_break and next player JSON lose ad fields", async () => {
+  const nested = fixture();
+  const { context } = setup({ fetchImpl: async url => new Response(JSON.stringify(
+    String(url).includes("next") ? { playerResponse: nested } : fixture()
+  ), { headers: { "content-type": "application/json" } }) });
+  assert.equal((await (await context.fetch("/youtubei/v1/player/ad_break")).json()).playerAds, undefined);
+  assert.equal((await (await context.fetch("/youtubei/v1/next")).json()).playerResponse.adSlots, undefined);
+  assert.equal((await (await context.fetch("/youtubei/v1/reel/reel_item_watch")).json()).adPlacements, undefined);
+});
+test("cloned player blob loses ad fields", async () => {
+  const { context } = setup();
+  const blob = await (await context.fetch("/youtubei/v1/player")).blob();
+  assert.equal(JSON.parse(await blob.text()).adSlots, undefined);
+});
+test("ad-showing video is seeked to the end when Skip is missing", () => {
+  let node;
+  const { context, observers, timers } = setup({
+    player: {
+      classList: { contains: () => true },
+      querySelector: s => s === "video" ? node : null
+    }
+  });
+  node = new context.HTMLVideoElement();
+  node.duration = 15;
+  node.currentTime = 1;
+  observers[0].callback();
+  timers.get(1)();
+  assert.equal(node.currentTime, 15);
+});
+test("live ads are sped up when duration is unknown", () => {
+  let node;
+  const { context, observers, timers } = setup({
+    player: {
+      classList: { contains: () => true },
+      querySelector: s => s === "video" ? node : null
+    }
+  });
+  node = new context.HTMLVideoElement();
+  node.duration = Infinity;
+  node.currentTime = 2;
+  observers[0].callback();
+  timers.get(1)();
+  assert.equal(node.playbackRate, 16);
+  assert.equal(node.muted, true);
+});
+test("playback errors during an ad do not tear down hooks", () => {
+  class AdVideo {
+    closest() { return { classList: { contains: name => name === "ad-showing" } }; }
+    paused = false; readyState = 1;
+  }
+  const { context, events, originalFetch } = setup();
+  Object.setPrototypeOf(AdVideo.prototype, context.HTMLVideoElement.prototype);
+  events.get("error")({ target: new AdVideo() });
+  assert.notEqual(context.fetch, originalFetch);
+});
+test("Skip inside an open shadow root is still clicked", () => {
+  const button = new Button();
+  const player = {
+    classList: { contains: () => true },
+    querySelector: () => null,
+    querySelectorAll: () => [],
+    shadowRoot: { querySelectorAll: () => [button] }
+  };
+  const { observers, timers } = setup({ player });
+  observers[0].callback();
+  timers.get(1)();
+  assert.equal(button.clicks, 1);
 });

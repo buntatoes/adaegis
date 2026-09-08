@@ -80,7 +80,7 @@ export async function packageExtension() {
   }
   entries.push(["AdAegis/SHA256SUMS.txt", Buffer.from(sums.join("\n") + "\n")]);
   const manifest = JSON.parse(await readFile(new URL("manifest.json", root), "utf8"));
-  if (!/^\d+\.\d+\.\d+$/.test(manifest.version)) throw Error("Invalid version");
+  if (!/^\d+\.\d+\.\d+(\.\d+)?$/.test(manifest.version)) throw Error("Invalid version");
   const filename = "adaegis-v" + manifest.version + "-chromium.zip";
   await mkdir(new URL("release/", root), { recursive: true });
   const bytes = zip(entries);

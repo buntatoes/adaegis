@@ -6,13 +6,13 @@
 
 A small ad blocker for desktop Chrome and Chromium 120+. Network blocking is on by default. Page cleanup and YouTube filtering are optional and start off.
 
-**0.4.1** is the current public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
+**0.4.1.1** is the current public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
 
 [Install](#install) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [License](LICENSE)
 
 ## Install
 
-Download **[adaegis-v0.4.1-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
+Download **[adaegis-v0.4.1.1-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
 
 1. Extract the ZIP and keep the **AdAegis** folder somewhere permanent, such as Documents.
 2. Open `chrome://extensions`.
@@ -38,8 +38,9 @@ Basic blocking does not need access to the pages you visit. Page cleanup asks fo
 
 Off by default. If you enable it, Chrome will ask for YouTube access. On home, watch, and Shorts it tries to:
 
-- Strip known ad fields from an eligible player response, including later ad-heartbeat data
+- Strip known ad fields from an eligible player response, including later ad-heartbeat data and ad-only follow-up payloads
 - Click a visible Skip button during an ad, including YouTube’s default button type
+- If Skip is missing, jump to the end of the ad on the existing video element
 
 Clicks from home, search, or a channel to a video stay in that same page. Player filtering stays ready on those YouTube pages so the next video is not missed. Skip clicks still only happen on home, watch, and Shorts. Account and billing URLs are left alone.
 

@@ -2,6 +2,21 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.4.1.1 — 2026-09-08
+
+YouTube ads still played after 0.4.1 because many of them never passed through `response.json()` on `/player`.
+
+### Fixed
+
+- Player JSON is cleaned when the page uses `JSON.parse`, including ad-only follow-ups that have no video id
+- `/youtubei/v1/player/ad_break`, `/youtubei/v1/next`, and Shorts reel watch URLs are cleaned the same way as `/player`
+- Fetch `blob()` replies are cleaned with the other body readers
+- If Skip never appears, the existing ad video is seeked to the end. Live ads with no duration are sped up on that same element
+- Overlay close controls and Skip inside an open shadow root are clicked
+- A playback error or stall during an ad no longer turns filtering off for that video
+
+Turning the experiment off in the popup still stops it. A video that is already playing when you turn filtering on may still need a reload.
+
 ## 0.4.1 — 2026-09-08
 
 YouTube filtering missed ads that 0.4.0 already thought it was handling.
