@@ -1,3 +1,23 @@
 node_modules/
 release/
 .DS_Store
+
+# Local environment configuration; keep the shareable template available.
+.env
+.env.*
+!.env.example
+
+# Private keys and bundles. Public .pub/.crt/.cer files and general .pem
+# certificates remain available to track.
+*.key
+*.p12
+*.pfx
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+private_key
+private-key
+private_key.*
+private-key.*
+*-private.pem
