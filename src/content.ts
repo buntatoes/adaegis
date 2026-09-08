@@ -33,10 +33,11 @@
     "ytd-rich-item-renderer:has(ytd-ad-slot-renderer)",
     "ytd-video-renderer:has(ytd-ad-slot-renderer)",
     "ytd-reel-video-renderer[is-ad]",
-    "masthead-ad"
+    "masthead-ad",
+    "ytmusic-mealbar-promo-renderer"
   ];
   const isYoutube = location.protocol === "https:" && !location.port &&
-    ["www.youtube.com", "m.youtube.com", "youtube.com"].includes(location.hostname);
+    ["www.youtube.com", "m.youtube.com", "youtube.com", "music.youtube.com"].includes(location.hostname);
   const style = document.createElement("style");
   style.dataset.adaegis = "cosmetic";
   style.textContent = [...generic, ...(isYoutube ? youtube : [])].join(",\n") + "{display:none!important}";

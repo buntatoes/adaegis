@@ -1,6 +1,6 @@
 (() => {
   // Hard-coded policy. No page message, remote list, or popup setting can widen it.
-  const HOSTS = ["youtube.com", "www.youtube.com", "m.youtube.com"];
+  const HOSTS = ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"];
   const allowedHost = () => location.protocol === "https:" && !location.port && HOSTS.includes(location.hostname);
   const pagePath = () => location.pathname.replace(/\/$/, "") || "/";
   const sensitivePage = () =>
@@ -8,6 +8,7 @@
   const allowHooks = () => allowedHost() && !sensitivePage();
   const allowInspect = () => {
     if (!allowHooks()) return false;
+    if (location.hostname === "music.youtube.com") return true;
     const path = pagePath();
     return path === "/" || path === "/watch" || /^\/shorts\/[A-Za-z0-9_-]{11}$/.test(path);
   };
@@ -15,6 +16,13 @@
     const normalized = path.replace(/\/$/, "") || "/";
     return normalized === "/youtubei/v1/player" || normalized === "/youtubei/v1/get_watch";
   };
+  const videoId = () => {
+    const shorts = /^\/shorts\/([A-Za-z0-9_-]{11})$/.exec(pagePath());
+    if (shorts) return shorts[1];
+    const value = new URLSearchParams(location.search).get("v");
+    return value && /^[A-Za-z0-9_-]{11}$/.test(value) ? value : "";
+  };
+  const pageKey = () => videoId() || (allowHooks() ? pagePath() : "");
   if (window.top !== window || !allowedHost()) return;
   const LIMITS = Object.freeze({
     edits: 200, scans: 10000, clicks: 100, clicksPerMinute: 10,
@@ -36,6 +44,7 @@
   let edits = 0, scans = 0, clickCount = 0;
   let lastClick = -Infinity;
   let recentClicks: number[] = [];
+  let seenKey = "";
   const clicked = new WeakSet<Element>();
   const restore: Array<() => void> = [];
 
@@ -51,9 +60,9 @@
       const descriptors = Object.getOwnPropertyDescriptors(value);
       if (Object.keys(descriptors).length > LIMITS.maxTopLevelKeys ||
           Object.values(descriptors).some(item => !("value" in item))) return value;
-      const videoId = dataProperty(descriptors.videoDetails?.value, "videoId");
+      const id = dataProperty(descriptors.videoDetails?.value, "videoId");
       const status = dataProperty(descriptors.playabilityStatus?.value, "status");
-      if (typeof videoId === "string" && /^[A-Za-z0-9_-]{11}$/.test(videoId) && status === "OK") {
+      if (typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id) && status === "OK") {
         let changed = false;
         for (const key of ["adPlacements", "playerAds", "adSlots"]) {
           const descriptor = descriptors[key];
@@ -106,6 +115,46 @@
     if (TERMINAL.has(reason)) terminal = true;
     if (document.documentElement) document.documentElement.dataset.adaegisYoutube = reason;
   }
+  function recover(): void {
+    terminal = false;
+    edits = 0;
+    scans = 0;
+    clickCount = 0;
+    lastClick = -Infinity;
+    recentClicks = [];
+  }
+  function rememberPage(): void {
+    const key = pageKey();
+    if (!wanted || !key) return;
+    if (seenKey && key !== seenKey) recover();
+    seenKey = key;
+  }
+  function playerUrl(value: string): URL | null {
+    try {
+      const url = new URL(value, location.href);
+      if (url.origin !== location.origin || !playerPath(url.pathname)) return null;
+      return url;
+    } catch { return null; }
+  }
+  function attachCleaner(response: Response): void {
+    const originalText = response.text.bind(response);
+    let parsed: Promise<unknown> | undefined;
+    const body = () => {
+      parsed ??= originalText().then(raw => {
+        try { return clean(JSON.parse(raw)); }
+        catch { return raw; }
+      });
+      return parsed;
+    };
+    response.json = async () => {
+      const value = await body();
+      return typeof value === "string" ? JSON.parse(value) : value;
+    };
+    response.text = async () => {
+      const value = await body();
+      return typeof value === "string" ? value : JSON.stringify(value);
+    };
+  }
   function start(): void {
     if (terminal || !wanted || !allowHooks()) return;
     if (!installed) {
@@ -144,13 +193,51 @@
             if (url.origin !== location.origin || !playerPath(url.pathname) ||
                 response.redirected || (response.url && new URL(response.url).origin !== location.origin) ||
                 !response.ok || response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return response;
-            const json = response.json.bind(response);
-            response.json = async () => clean(await json());
+            attachCleaner(response);
           } catch { /* Preserve unexpected response formats. */ }
           return response;
         };
         window.fetch = wrappedFetch;
         restore.push(() => { if (window.fetch === wrappedFetch) window.fetch = originalFetch; });
+        const XHR = window.XMLHttpRequest;
+        if (typeof XHR === "function") {
+          const proto = XHR.prototype;
+          const originalOpen = proto.open;
+          const originalSend = proto.send;
+          const targets = new WeakMap<XMLHttpRequest, URL>();
+          const wrappedOpen = function(this: XMLHttpRequest, method: string, url: string | URL, async?: boolean, username?: string | null, password?: string | null) {
+            const target = playerUrl(String(url));
+            if (target) targets.set(this, target); else targets.delete(this);
+            return originalOpen.apply(this, arguments as unknown as Parameters<XMLHttpRequest["open"]>);
+          };
+          const wrappedSend: typeof proto.send = function(this: XMLHttpRequest, body) {
+            if (targets.has(this)) {
+              this.addEventListener("readystatechange", () => {
+                if (!installed || !wanted || this.readyState !== 4 || this.status < 200 || this.status >= 300) return;
+                const kind = this.responseType;
+                if (kind === "arraybuffer" || kind === "blob" || kind === "document") return;
+                if (this.getResponseHeader("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return;
+                try {
+                  const raw = this.responseType === "json" ? this.response : JSON.parse(this.responseText);
+                  const cleaned = clean(raw);
+                  if (cleaned === raw) return;
+                  const text = JSON.stringify(cleaned);
+                  Object.defineProperty(this, "responseText", { configurable: true, value: text });
+                  Object.defineProperty(this, "response", {
+                    configurable: true, value: this.responseType === "json" ? cleaned : text
+                  });
+                } catch { /* Preserve unexpected response formats. */ }
+              });
+            }
+            return originalSend.call(this, body);
+          };
+          proto.open = wrappedOpen as typeof proto.open;
+          proto.send = wrappedSend;
+          restore.push(() => {
+            if (proto.open === wrappedOpen) proto.open = originalOpen;
+            if (proto.send === wrappedSend) proto.send = originalSend;
+          });
+        }
         window.addEventListener("pagehide", onStop);
         document.addEventListener("error", onError, true);
         document.addEventListener("waiting", onWaiting, true);
@@ -160,13 +247,15 @@
     setObserving(allowInspect());
   }
   function sync(): void {
+    rememberPage();
     if (terminal) return;
     if (wanted && allowHooks()) start();
     else if (installed) stop(wanted ? "unsupported-page" : "disabled");
   }
   const onStop = () => stop();
   const inPlayer = (target: EventTarget | null): target is HTMLVideoElement =>
-    target instanceof HTMLVideoElement && !!target.closest("#movie_player");
+    target instanceof HTMLVideoElement &&
+      !!(target.closest("#movie_player") || target.closest("ytmusic-player"));
   const onError = (event: Event) => { if (inPlayer(event.target)) stop("playback-error"); };
   const onWaiting = (event: Event) => {
     if (!inPlayer(event.target) || stallTimer !== undefined) return;
@@ -190,14 +279,16 @@
       return;
     }
     if (++scans > LIMITS.scans) { stop("scan-limit"); return; }
-    const player = document.querySelector("#movie_player");
+    const player = document.querySelector("#movie_player") ?? document.querySelector("ytmusic-player");
     if (!player) return;
     const errorPanel = player.querySelector<HTMLElement>(".ytp-error");
     if (errorPanel?.getClientRects().length && getComputedStyle(errorPanel).visibility !== "hidden") {
       stop("player-error"); return;
     }
     if (!player.classList.contains("ad-showing") && !player.classList.contains("ad-interrupting")) return;
-    const button = player.querySelector(".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern");
+    const button = player.querySelector(
+      ".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytmusic-skip-ad-button"
+    );
     if (!(button instanceof HTMLButtonElement) || button.type !== "button" || button.form ||
         !button.isConnected || clicked.has(button) || !button.getClientRects().length ||
         button.matches(":disabled, [aria-disabled='true']")) return;
@@ -227,5 +318,6 @@
   if (navigation && typeof navigation.addEventListener === "function") {
     navigation.addEventListener("navigatesuccess", sync);
   }
+  rememberPage();
   start();
 })();

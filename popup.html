@@ -7,16 +7,33 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body><main>
-  <h1><img src="icons/icon48.png" width="28" height="28" alt=""> AdAegis <small>0.3.4</small></h1>
+  <h1><img src="icons/icon48.png" width="28" height="28" alt=""> AdAegis <small>0.4.0</small></h1>
   <p id="status" role="status">Loading protection…</p>
   <label>Network protection <input id="enabled" type="checkbox" disabled></label>
+  <p class="pause-row">
+    <button type="button" id="pause10" disabled>Pause 10 min</button>
+    <button type="button" id="pause60" disabled>Pause 1 hour</button>
+  </p>
   <label>Page ad cleanup <input id="cosmetic" type="checkbox" disabled></label>
   <p class="hint">Optional. Asks for access to websites so it can hide recognized ad boxes.</p>
   <label><span>Allow ads on this exact hostname <span id="host"></span></span><input id="site" type="checkbox" disabled></label>
+  <h2>Site exceptions</h2>
+  <ul id="exceptions"></ul>
+  <p id="exception-empty" class="hint">No site exceptions.</p>
+  <form id="add-site">
+    <label class="add-label" for="host-input">Add hostname</label>
+    <div class="add-row">
+      <input id="host-input" type="text" maxlength="253" placeholder="example.com" autocomplete="off" spellcheck="false" disabled>
+      <button type="submit" id="add-host" disabled>Add</button>
+    </div>
+  </form>
+  <p class="hint">Exact hostnames only. www and non-www are different. Cap is 200.</p>
   <h2>Experimental YouTube filtering</h2>
   <label>Enable YouTube filtering <input id="youtube" type="checkbox" disabled></label>
-  <p class="hint">Optional. Asks for YouTube access. Tries to strip known ad data and click Skip. Can break playback.</p>
-  <p id="notice" role="status" aria-live="polite">Page cleanup can start on tabs that are already open. If a YouTube video is already playing, reload or wait for the next video. If playback breaks, turn the experiment off and reload.</p>
+  <p class="hint">Optional. Asks for youtube.com access. Tries to strip known ad data and click Skip. Can break playback.</p>
+  <label>Enable YouTube Music filtering <input id="music" type="checkbox" disabled></label>
+  <p class="hint">Optional. Asks only for music.youtube.com. Same limits as YouTube filtering.</p>
+  <p id="notice" role="status" aria-live="polite">Page cleanup can start on tabs that are already open. If a YouTube video is already playing, reload or wait for the next video. A stall or error on one video no longer turns the experiment off for the next. If playback breaks, turn the experiment off and reload.</p>
   <button type="button" id="revoke" disabled>Remove page access</button>
   <footer>Local settings. No telemetry.<br><a href="INSTALL.html" target="_blank" rel="noopener">Install, update, and uninstall</a></footer>
 </main><script type="module" src="dist/popup.js"></script></body>

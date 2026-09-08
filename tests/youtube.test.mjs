@@ -13,7 +13,7 @@ class Button {
   getClientRects() { return [1]; } matches() { return false; } click() { this.clicks++; }
 }
 function setup({ initial = fixture(), player = null, fetchImpl, descriptor,
-  url = "https://www.youtube.com/watch?v=Abc12345678", framed = false } = {}) {
+  url = "https://www.youtube.com/watch?v=Abc12345678", framed = false, XMLHttpRequest } = {}) {
   const events = new Map();
   const add = (name, f) => { events.set(name, f); };
   const remove = name => events.delete(name);
@@ -24,7 +24,7 @@ function setup({ initial = fixture(), player = null, fetchImpl, descriptor,
   const originalFetch = fetchImpl ?? (async () => new Response(JSON.stringify(fixture()), { headers: { "content-type": "application/json" } }));
   const context = {
     location: new URL(url),
-    URL, Request, Response, Event, Object, HTMLVideoElement: Video, HTMLButtonElement: Button,
+    URL, URLSearchParams, JSON, Request, Response, Event, Object, HTMLVideoElement: Video, HTMLButtonElement: Button,
     Date: { now: () => now },
     document: {
       documentElement: { dataset: {} }, querySelector: () => player,
@@ -41,7 +41,8 @@ function setup({ initial = fixture(), player = null, fetchImpl, descriptor,
     MutationObserver: class {
       constructor(f) { this.callback = f; observers.push(this); }
       observe() {} disconnect() { this.disconnected = true; }
-    }
+    },
+    XMLHttpRequest
   };
   context.window = context;
   context.top = framed ? {} : context;
@@ -91,12 +92,14 @@ test("fetch modification is restricted to same-origin player JSON", async () => 
     assert.ok((await response.json()).adSlots);
   }
 });
-test("fetch rejection is preserved and text() is unchanged", async () => {
+test("fetch rejection is preserved and text() is cleaned on player JSON", async () => {
   const { context } = setup({ fetchImpl: async () => { throw Error("offline"); } });
   await assert.rejects(context.fetch("/youtubei/v1/player"), /offline/);
   const second = setup();
   const response = await second.context.fetch("/youtubei/v1/player");
-  assert.ok(JSON.parse(await response.text()).adPlacements);
+  assert.equal(JSON.parse(await response.text()).adPlacements, undefined);
+  const third = setup();
+  assert.equal((await (await third.context.fetch("/youtubei/v1/player")).json()).adSlots, undefined);
 });
 test("disable restores hooks and stops cleaning in-flight response JSON", async () => {
   const { context, events, originalFetch, observers } = setup();
@@ -399,4 +402,73 @@ test("watch with a trailing slash still clicks Skip", () => {
   observers[0].callback();
   timers.get(1)();
   assert.equal(button.clicks, 1);
+});
+test("a new video after a playback error starts a fresh budget", async () => {
+  const { context, events, originalFetch, Video } = setup();
+  events.get("error")({ target: new Video() });
+  assert.equal(context.fetch, originalFetch);
+  context.location = new URL("https://www.youtube.com/watch?v=Xyz98765432");
+  events.get("yt-navigate-finish")();
+  assert.notEqual(context.fetch, originalFetch);
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adSlots, undefined);
+});
+test("the same video ID after an error stays off", () => {
+  const { context, events, originalFetch, Video } = setup();
+  events.get("error")({ target: new Video() });
+  context.location = new URL("https://www.youtube.com/watch?v=Abc12345678&t=12");
+  events.get("yt-navigate-finish")();
+  assert.equal(context.fetch, originalFetch);
+});
+test("YouTube Music installs hooks and clicks Skip on a music player", () => {
+  const button = new Button();
+  const player = { classList: { contains: () => true }, querySelector: s => s === ".ytp-error" ? null : button };
+  const { context, observers, timers, originalFetch } = setup({
+    url: "https://music.youtube.com/watch?v=Abc12345678", player
+  });
+  assert.notEqual(context.fetch, originalFetch);
+  observers[0].callback();
+  timers.get(1)();
+  assert.equal(button.clicks, 1);
+});
+test("Music browse pages keep skip available; account still restores hooks", () => {
+  const button = new Button();
+  const player = { classList: { contains: () => true }, querySelector: s => s === ".ytp-error" ? null : button };
+  const browse = setup({ url: "https://music.youtube.com/library", player });
+  browse.observers[0].callback();
+  browse.timers.get(1)?.();
+  assert.equal(button.clicks, 1);
+  browse.context.location = new URL("https://music.youtube.com/account");
+  browse.events.get("yt-navigate-finish")();
+  assert.equal(browse.context.fetch, browse.originalFetch);
+});
+test("same-origin player XHR JSON loses only ad arrays", () => {
+  function XHR() {
+    this.readyState = 0;
+    this.status = 0;
+    this.responseType = "";
+    this.responseText = "";
+    this.response = "";
+    this.listeners = {};
+  }
+  XHR.prototype.open = function(_method, url) { this.url = url; };
+  XHR.prototype.send = function() {
+    this.readyState = 4;
+    this.status = 200;
+    this.responseText = JSON.stringify(fixture());
+    this.response = this.responseText;
+    for (const fn of this.listeners.readystatechange ?? []) fn.call(this);
+  };
+  XHR.prototype.addEventListener = function(name, fn) { (this.listeners[name] ??= []).push(fn); };
+  XHR.prototype.getResponseHeader = function(name) {
+    return name.toLowerCase() === "content-type" ? "application/json" : null;
+  };
+  const { context } = setup({ XMLHttpRequest: XHR });
+  const xhr = new context.XMLHttpRequest();
+  xhr.open("POST", "/youtubei/v1/player");
+  xhr.send();
+  assert.equal(JSON.parse(xhr.responseText).adSlots, undefined);
+  const browse = new context.XMLHttpRequest();
+  browse.open("POST", "/youtubei/v1/browse");
+  browse.send();
+  assert.ok(JSON.parse(browse.responseText).adSlots);
 });

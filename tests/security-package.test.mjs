@@ -9,7 +9,7 @@ const read = path => readFile(new URL(path, root), "utf8");
 const manifest = JSON.parse(await read("manifest.json"));
 
 test("least-privilege manifest and explicit network-denying extension CSP", () => {
-  assert.deepEqual(manifest.permissions, ["declarativeNetRequest", "storage", "scripting", "activeTab"]);
+  assert.deepEqual(manifest.permissions, ["alarms", "declarativeNetRequest", "storage", "scripting", "activeTab"]);
   assert.equal(manifest.host_permissions, undefined);
   assert.equal(manifest.content_scripts, undefined);
   assert.deepEqual(manifest.optional_host_permissions, ["http://*/*", "https://*/*"]);

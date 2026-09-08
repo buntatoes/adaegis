@@ -3,14 +3,20 @@
                    
                     
                                
+                                    
                       
+                     
  
 
 export const DEFAULTS           = {
-  enabled: true, cosmetic: false, youtubeExperimental: false, allowlist: []
+  enabled: true, cosmetic: false, youtubeExperimental: false,
+  youtubeMusicExperimental: false, allowlist: [], pauseUntil: 0
 };
 export const ALL_SITES = ["http://*/*", "https://*/*"];
 export const YOUTUBE_SITES = ["https://www.youtube.com/*", "https://m.youtube.com/*", "https://youtube.com/*"];
+export const MUSIC_SITES = ["https://music.youtube.com/*"];
+export const PAUSE_MINUTES = [10, 60]         ;
+export const RESUME_ALARM = "adaegis-resume";
 
 export function validHost(value         )                  {
   return typeof value === "string" && value.length <= 253 &&
@@ -24,6 +30,25 @@ export function hostname(value         )                {
     const url = new URL(value);
     return /^https?:$/.test(url.protocol) ? url.hostname.toLowerCase() : null;
   } catch { return null; }
+}
+
+export function parseHost(value         )                {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed || trimmed.length > 300) return null;
+  const candidate = trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed
+    : trimmed.startsWith("//") ? "https:" + trimmed
+      : "https://" + trimmed;
+  const host = hostname(candidate);
+  return host && validHost(host) ? host : null;
+}
+
+export function isYoutubeHost(host        )          {
+  return host === "youtube.com" || host === "www.youtube.com" || host === "m.youtube.com";
+}
+
+export function isMusicHost(host        )          {
+  return host === "music.youtube.com";
 }
 
 // Only the match patterns this extension actually registers: scheme://host/*
@@ -47,8 +72,20 @@ export function normalize(raw                         )           {
     enabled: typeof raw.enabled === "boolean" ? raw.enabled : true,
     cosmetic: raw.cosmetic === true,
     youtubeExperimental: raw.youtubeExperimental === true,
-    allowlist
+    youtubeMusicExperimental: raw.youtubeMusicExperimental === true,
+    allowlist,
+    pauseUntil: Number.isSafeInteger(raw.pauseUntil) && (raw.pauseUntil          ) > 0 ?
+      raw.pauseUntil           : 0
   };
+}
+
+export function pauseBadge(settings          , now = Date.now())         {
+  if (settings.enabled) return "";
+  if (settings.pauseUntil > now) {
+    const minutes = Math.max(1, Math.round((settings.pauseUntil - now) / 60000));
+    return minutes >= 60 ? Math.round(minutes / 60) + "h" : minutes + "m";
+  }
+  return "OFF";
 }
 
 export function exceptionRules(hosts          )                                      {

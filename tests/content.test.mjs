@@ -107,3 +107,8 @@ test("generic pages only receive fixed generic selectors", async () => {
   assert.ok(!style.textContent.includes("masthead-ad"));
   assert.deepEqual(signals, []);
 });
+test("YouTube Music pages receive music promo selectors and start signals", async () => {
+  const { style, signals } = await setup({ ok: true, cosmetic: true, youtube: true }, "music.youtube.com");
+  assert.match(style.textContent, /ytmusic-mealbar-promo-renderer/);
+  assert.deepEqual(signals, ["adaegis:youtube-start"]);
+});

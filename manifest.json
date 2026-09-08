@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "AdAegis",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "minimum_chrome_version": "120",
   "description": "A small ad blocker for Chrome. Network blocking, optional page cleanup, and experimental YouTube filtering.",
-  "permissions": ["declarativeNetRequest", "storage", "scripting", "activeTab"],
+  "permissions": ["alarms", "declarativeNetRequest", "storage", "scripting", "activeTab"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "content_security_policy": {
     "extension_pages": "default-src 'none'; script-src 'self'; object-src 'none'; style-src 'self'; img-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
