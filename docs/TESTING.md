@@ -1,45 +1,19 @@
-# Manual browser checks before general distribution
+# Manual browser tests
 
-These checks validate the browser behavior that cannot be confirmed from source
-inspection alone: Chrome's permission prompts, DNR engine, registration
-lifecycle and YouTube's production behavior.
+Run these in Chrome or Chromium 120+ before tagging a release.
 
-1. Install the pinned development dependencies and run npm run check. Run
-   npm run package; confirm a clean ZIP loads in desktop Chrome/Chromium 120+.
-   Inspect extension and service-worker errors.
-2. Follow INSTALL.html from a fresh browser profile without Node or admin rights.
-   Confirm there is no required page-host access at installation.
-3. Check that a request matching a bundled rule is blocked; pause and repeat it.
-   Turn off other blockers when isolating this behavior.
-4. Enable page cleanup and decline its permission prompt: the feature must stay
-   off. Enable again and grant access, reload, and confirm recognized ads hide.
-   Check normal content, form controls, captions and keyboard navigation.
-5. With page cleanup off, enable only the YouTube experiment. Verify the prompt
-   is limited to the three YouTube hosts and no general page cleanup script is
-   registered. Reload and test supported routes.
-6. Inspect local storage access from a content-script context: global preferences
-   must be inaccessible. A page-policy reply contains only ok/cosmetic/youtube
-   booleans for that page, never hostnames or the global allowlist.
-7. Add an exact-host exception, reload, and verify that this extension allows
-   its page/frame requests. An unrelated host or subdomain must not be excepted.
-   Remove the exception and reload; blocking should return.
-8. Test optional-feature switches, global pause and permission revocation while
-   pages are open. Styles/hooks should stop. Newly enabled scripts require reload.
-   Use Remove page access and verify grants are actually removed.
-9. Check error backoff and disable/reload recovery on YouTube. Verify that normal
-   player controls are not hidden, form/anchor elements cannot be auto-clicked,
-   and rapid rotating Skip controls do not produce repeated clicks.
-10. Test logged-in/out YouTube home/watch/Shorts playback, captions, fullscreen,
-    SPA navigation, live streams, network loss and browser back/forward cache.
-    Do not claim success across account/regional variations without testing them.
-11. Verify toolbar count behavior; counts are network actions, not removed ads.
-    Restart the browser and reload/update the extension while paused: settings
-    and exceptions should persist and unauthorized scripts should stay absent.
-12. Confirm site exceptions cannot be changed for chrome://, file:// or inactive
-    tabs. Test denied storage/DNR API calls and rapid settings changes.
-13. Update by replacing files in the same installed folder, then reload. Confirm
-    the extension identity/settings stay intact. Remove the extension and verify
-    no registry, proxy, policy, certificate or updater components remain.
+1. `npm run check` and `npm run package`. Load the ZIP in a fresh profile and check the service worker for errors.
+2. Follow INSTALL.html with no extra tools. Confirm the install does not request page access.
+3. Hit a domain covered by the bundled rules; pause and try again. Turn off other blockers while you do this.
+4. Enable page cleanup and deny the permission prompt: it must stay off. Grant access, reload, and check that recognized ads hide without breaking forms, captions, or keyboard use.
+5. With cleanup off, enable only YouTube filtering. The prompt should be YouTube-only. Reload home, watch, and Shorts.
+6. From a content-script context, global settings must be unreadable. A page-policy reply is only `ok` / `cosmetic` / `youtube` for that page.
+7. Add an exact-host exception, reload, and confirm only that host is excepted. Remove it and reload; blocking should return.
+8. Toggle features and **Remove page access** on open pages. New scripts need a reload. Confirm grants are actually gone.
+9. On YouTube, check error recovery (disable and reload). Normal player controls must stay clickable. Skip must not fire on forms or links, or hammer a rotating button.
+10. Try signed-in and signed-out YouTube, captions, fullscreen, in-page navigation, live, and offline. Note the browser version and what you saw.
+11. Toolbar counts are network actions, not ads removed. Restart the browser while paused: settings should stick and extra scripts should stay unregistered.
+12. Site exceptions cannot be changed on `chrome://`, `file://`, or inactive tabs.
+13. Update by replacing files in the same folder, then reload. Settings should survive. After uninstall, nothing should remain except the folder you delete yourself.
 
-Record browser version, OS, test cases and observed results before publishing
-release claims. Do not log credentials, browsing history or raw player responses.
+Do not paste cookies, history, or raw player responses into issues.

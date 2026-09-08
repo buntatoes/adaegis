@@ -3,7 +3,7 @@
   "name": "AdAegis",
   "version": "0.3.0",
   "minimum_chrome_version": "120",
-  "description": "A lightweight, privacy-first Manifest V3 content blocker.",
+  "description": "A small ad blocker for Chrome. Network blocking, optional page cleanup, and experimental YouTube filtering.",
   "permissions": ["declarativeNetRequest", "storage", "scripting", "activeTab"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "content_security_policy": {
@@ -13,9 +13,21 @@
     "service_worker": "dist/background.js",
     "type": "module"
   },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_title": "AdAegis",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "declarative_net_request": {
     "rule_resources": [

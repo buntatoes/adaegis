@@ -1,6 +1,8 @@
 :root { font-family: system-ui, sans-serif; color: #142532; background: #f1f5f4; }
 body { margin: 0; }
 main { max-width: 760px; margin: auto; padding: 48px 22px 60px; }
+.brand { margin: 0 0 12px; }
+.brand img { display: block; width: 72px; height: 72px; }
 .eyebrow { font-size: 12px; letter-spacing: .08em; font-weight: 700; color: #18644e; }
 h1 { font-size: clamp(30px, 6vw, 46px); line-height: 1.1; margin: 14px 0; letter-spacing: -.03em; }
 .intro { font-size: 18px; color: #465e6b; }

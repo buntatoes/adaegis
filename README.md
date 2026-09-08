@@ -1,177 +1,74 @@
+<p align="center">
+  <img src="icons/adaegis.png" width="128" height="128" alt="AdAegis">
+</p>
+
 # AdAegis
 
-A small, original TypeScript Manifest V3 ad-blocker for desktop Chrome/Chromium 120+.
-**0.3.0 is a hardened testing build.** It is distributed outside the Chrome Web Store.
-It is not a security-certified release or a guarantee of ad-free YouTube.
+A small ad blocker for desktop Chrome and Chromium 120+. Network blocking is on by default. Page cleanup and YouTube filtering are optional and start off.
 
-## Documentation
+**0.3.0** is the first public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
 
-- [License](LICENSE) and [attribution notice](NOTICE): Apache License 2.0.
-- [Changelog](CHANGELOG.md): the full implementation history, fixes and validation status.
-- [Installation guide](INSTALL.html): install, update, remove permissions and uninstall.
-- [Security policy](SECURITY.md): permissions, hard-coded interaction limits and residual risks.
-- [Manual testing checklist](docs/TESTING.md): browser checks still needed before general distribution.
+[Install](#install) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [License](LICENSE)
 
-## Version highlights
+## Install
 
-| Version | Main updates |
-| --- | --- |
-| 0.3.0 | Ready-to-extract installation ZIP, offline guide, optional page permissions, protected settings, stricter messages/CSP and bounded YouTube interactions. |
-| 0.2.0 | Cosmetic filtering, exact-hostname exceptions, network-action badge, opt-in YouTube player experiment and the prebuilt pause fix. |
-| 0.1.0 | Original TypeScript MV3 starter: eight network rules, local preferences, popup and initial build setup. The prebuilt pause defect was corrected in 0.2.0. |
+Download **[adaegis-v0.3.0-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
 
-These are extension version milestones. See the [changelog](CHANGELOG.md) for
-the detailed implementation history.
+1. Extract the ZIP and keep the **AdAegis** folder somewhere permanent, such as Documents.
+2. Open `chrome://extensions`.
+3. Turn on **Developer mode** and click **Load unpacked**.
+4. Select the **AdAegis** folder that contains `manifest.json`.
 
-## Install without coding
+Pin it from the extensions menu and open the popup. A longer walkthrough ships in the ZIP as [INSTALL.html](INSTALL.html).
 
-Use the ready-made **adaegis-v0.3.0-chromium.zip** from
-[GitHub Releases](https://github.com/buntatoes/adaegis/releases).
-No Node.js, terminal, administrator installer, or build step is needed.
+Chrome loads the extension from that folder. Leave it where it is. To update, copy the new files into the same folder, click **Reload**, and refresh open sites. To uninstall, click **Remove** on the Extensions page, then delete the folder.
 
-1. Extract the ZIP and keep the **AdAegis** folder in a permanent location.
-2. Open your browser's Extensions page (chrome://extensions in Chrome/Chromium).
-3. Enable **Developer mode** and click **Load unpacked**.
-4. Select the extracted **AdAegis** folder that contains manifest.json. Pin AdAegis
-   from the extensions menu, then open its popup.
+## Features
 
-The package includes an offline [installation guide](INSTALL.html). Browser
-extension-management URLs must be entered in the address bar. Web pages cannot
-complete the installation for the user. Managed browsers may prohibit unpacked
-extensions; the package does not bypass such policies.
+- Eight built-in rules for common ad-tech domains, on by default
+- Pause switch and up to 200 exact-hostname exceptions
+- Optional page cleanup that hides recognized ad containers
+- Optional experimental YouTube player filtering
+- Settings stay on your computer: no account, no telemetry, no remote filter list, no auto-update
 
-You can also download this repository's source archive, extract it and select
-the root folder: the generated dist/ files are committed.
+Basic blocking does not need access to the pages you visit. Page cleanup asks for HTTP/HTTPS access. YouTube filtering asks only for YouTube.
 
-### Updating and uninstalling
+## YouTube filtering
 
-Replace the contents of the **same installed folder** with the new version's
-files, click **Reload** in the browser's Extensions page and reload open websites.
-Keep that folder in place; moving it or removing/reinstalling the extension can
-change its identity and lose settings. Updates are manual.
+Off by default. If you enable it, Chrome will ask for YouTube access. After you reload YouTube, it tries to:
 
-To uninstall, choose **Remove** in the Extensions page, then delete the folder.
-To keep network blocking but remove page permissions, use **Remove page access**
-in the popup and reload open pages.
+- Strip known ad fields from an eligible player response
+- Click a visible Skip button during an ad
 
-## Features and default permissions
+It only runs on YouTube home, watch, and Shorts. It will not catch every ad, and it can break playback. If that happens, turn it off and reload.
 
-- Eight fixed network rules for common ad-tech domains. Enabled by default.
-- A global pause switch, up to 200 exact-hostname exceptions and Chrome-managed
-  network-action counts. Reload after changing exceptions. Counts are not ad totals.
-- Optional page cleanup hides recognized ad containers, including selected
-  YouTube promoted cards. Off by default; asks for HTTP/HTTPS page access.
-- Optional YouTube experiment. Off by default; asks for access to three exact
-  YouTube HTTPS hosts. Page cleanup can remain off.
+## Build from source
 
-Basic blocking has **no required page host permissions**. There is no telemetry,
-remote filter feed, remotely executed code, or automatic updater. Settings stay
-local; content scripts cannot read the global exception list or modify settings.
-All page features are permission-gated. Existing users keep a feature enabled
-only when its required site permission is still granted.
-
-## Experimental YouTube mode
-
-Enable it in the popup, accept YouTube access and reload YouTube. It tries to:
-
-- Remove only recognized ad arrays from a local copy of an eligible player response.
-- Clean the json() consumption of a same-origin player fetch response.
-- Click a recognized visible, enabled, non-form Skip button during an ad.
-- Stop its hooks on playback errors, prolonged stalls or unsupported navigation.
-
-It runs only in the top frame of YouTube's home/watch/valid Shorts pages over
-HTTPS. It does not cover XHR, response.text(), every player path, embeds or
-server-stitched ads. Directly opening a different route may require reloading
-after navigating to a supported page.
-
-Hard-coded limits restrict metadata changes, DOM scans and Skip clicks. The
-wrapper forwards existing requests exactly once with their original URL,
-parameters, body, method, credentials and headers. Authentication, subscription,
-playability, stream signatures and DRM data are not changed.
-See [SECURITY.md](SECURITY.md) for the precise allowed operations and limits.
-
-The current hard-coded boundaries include:
-
-| Operation | Limit |
-| --- | --- |
-| Local player edits | Only the `adPlacements`, `playerAds` and `adSlots` arrays; at most 200 changed responses per document. |
-| Automatic Skip clicks | A recognized enabled, visible, non-form button; once per element, at least 2 seconds apart, at most 10 per minute and 100 per document. |
-| Page processing | DOM scans coalesced at 250 ms and stopped after 10,000 scans; cosmetic CSS insertion limited to 10 attempts per document. |
-
-These limits are bundled in the code, not configurable through website messages
-or remotely supplied rules. They cannot protect against someone editing the
-extension's source or a compromised browser/operating system.
-
-Live ad-blocking effectiveness is unverified. If playback fails, disable the
-experiment and reload. Restoring hooks cannot rebuild an already broken player.
-Normal filtering is also intentionally small; it is not a mature filter-list engine.
-
-## Development
-
-Node.js **22.18+** is needed for development/packaging only. Runtime code has no
-third-party packages. The build and package commands require no dependency downloads:
+Development needs Node.js 22.18 or newer. The extension itself has no runtime npm packages.
 
 ```bash
-npm run build
-npm run package
+npm run build      # compile TypeScript into dist/
+npm run package    # test and write the ZIP under release/
 ```
-
-The package command writes the ZIP and its SHA-256 checksum under release/.
-Only an explicit inventory of runtime files, installation/security
-documentation, LICENSE and NOTICE is packaged. Source code, test tools,
-dependencies, credentials and environment files are excluded.
-
-Build output uses Node's TypeScript type erasure, which may emit an experimental
-API warning. Type erasure is not static checking. To check types:
 
 ```bash
 npm install
 npm run typecheck
-npm run check
 ```
 
-Development dependency versions are pinned. Do not manually edit dist/.
+Edit files under `src/`. Do not edit `dist/` by hand.
 
-### Repository layout
-
-| Path | Purpose |
+| Path | What it is |
 | --- | --- |
-| `src/` | TypeScript worker, popup, settings, cosmetic filtering and YouTube experiment. |
-| `dist/` | Generated JavaScript loaded by the browser. |
-| `rules/core.json` | The eight bundled network-blocking rules. |
-| `scripts/build.mjs` | Generate JavaScript from TypeScript without package downloads. |
-| `scripts/package.mjs` | Build the installation ZIP from an explicit file inventory and generate checksums. |
-| `tests/` | Development checks for extension behavior and package integrity. |
-| `release/` | Generated ZIP/checksum output; excluded from version control. |
+| `src/` | TypeScript sources |
+| `dist/` | Generated JavaScript the browser loads |
+| `rules/core.json` | Bundled network rules |
+| `icons/` | Logo and toolbar icons |
+| `tests/` | Automated checks |
+| `docs/TESTING.md` | Manual browser checklist |
 
-## Distribution references
+## License
 
-[Chrome's unpacked-install instructions](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)
-document this installation method.
-[Chrome's alternative-installation rules](https://developer.chrome.com/docs/extensions/how-to/distribute/install-extensions)
-restrict ordinary external CRX installation on Windows/macOS; Linux has additional
-self-hosting options. This package uses the manual unpacked flow and does not
-modify registry entries, enterprise policies, certificates or browser safeguards.
+Copyright 2026 Buntos ([buntatoes](https://github.com/buntatoes)).
 
-API references: [optional permissions](https://developer.chrome.com/docs/extensions/reference/api/permissions),
-[storage access](https://developer.chrome.com/docs/extensions/reference/api/storage),
-[DNR](https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest).
-
-## Source and license
-
-Copyright 2026 Buntos (GitHub: buntatoes).
-
-AdAegis's original source code, generated JavaScript, bundled rules and
-documentation are licensed under the [Apache License, Version 2.0](LICENSE).
-See [NOTICE](NOTICE) for attribution.
-
-You may use, modify and redistribute AdAegis, including commercially, subject to
-the license. Redistribution requires a copy of the license, prominent notices
-in modified files, retention of applicable source notices and preservation of
-applicable NOTICE attribution as described in Section 4. Modified versions do
-not have to publish their source code. The license includes a patent grant with
-conditions, limits trademark permissions and provides warranty and liability
-terms; the full LICENSE controls.
-
-No uBlock source, assets or filter lists are included. Third-party development
-dependencies retain their own licenses and are not bundled in installation ZIPs.
+AdAegis is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution. No uBlock source, assets, or filter lists are included.

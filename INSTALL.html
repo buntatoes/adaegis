@@ -3,27 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
   <title>Install AdAegis</title>
   <link rel="stylesheet" href="install.css">
 </head>
 <body>
 <main>
-  <p class="eyebrow">ADAEGIS · DESKTOP CHROMIUM · 0.3.0</p>
-  <h1>Four steps to get started.</h1>
-  <p class="intro">No account, terminal, or build tools needed. Keep the extracted AdAegis folder in a permanent location.</p>
+  <p class="brand"><img src="icons/icon128.png" width="72" height="72" alt="AdAegis"></p>
+  <p class="eyebrow">ADAEGIS · 0.3.0</p>
+  <h1>Install in four steps.</h1>
+  <p class="intro">No account or build tools. Keep the extracted AdAegis folder somewhere you will not move it.</p>
   <ol class="steps">
-    <li><h2>Extract the ZIP</h2><p>Use Extract All or your computer's archive app. Move the <strong>AdAegis</strong> folder somewhere you will keep it, such as Documents. Do not load the ZIP itself.</p></li>
-    <li><h2>Open your browser's Extensions page</h2><p>Use the browser menu → Extensions → Manage extensions. In Chrome or Chromium you can instead type <code>chrome://extensions</code> into the address bar.</p></li>
-    <li><h2>Turn on Developer mode</h2><p>Enable the Developer mode switch on that page. This is the browser-supported method for loading an extension outside the store.</p></li>
-    <li><h2>Choose Load unpacked</h2><p>Select the extracted <strong>AdAegis</strong> folder containing <code>manifest.json</code>. Then pin AdAegis from the puzzle-piece menu and open its popup.</p></li>
+    <li><h2>Extract the ZIP</h2><p>Use Extract All or your archive app. Put the <strong>AdAegis</strong> folder in a lasting place, such as Documents. Do not load the ZIP itself.</p></li>
+    <li><h2>Open Extensions</h2><p>Browser menu → Extensions → Manage extensions. In Chrome or Chromium you can type <code>chrome://extensions</code> in the address bar.</p></li>
+    <li><h2>Turn on Developer mode</h2><p>Use the Developer mode switch on that page. That is how Chrome loads an extension that is not on the store.</p></li>
+    <li><h2>Load unpacked</h2><p>Select the <strong>AdAegis</strong> folder that contains <code>manifest.json</code>. Pin AdAegis from the puzzle-piece menu and open the popup.</p></li>
   </ol>
-  <section class="note"><h2>What starts automatically?</h2><p>Basic network blocking. Page ad cleanup and experimental YouTube filtering start off; enable either in the popup if you want it. The browser asks for the site access each feature needs.</p><p>Reload the website after enabling a feature. YouTube filtering is experimental; turn it off and reload if playback breaks.</p></section>
-  <section><h2>Update without losing your settings</h2><p>Download the next ZIP from this project's GitHub Releases page. Extract it elsewhere first, then copy the new AdAegis folder's contents into the same permanent folder you originally installed. Confirm file replacement, press Reload on AdAegis in the Extensions page, and reload open websites.</p><p>Do not remove/reinstall the extension or switch installation folders for a routine update. There is no automatic updater.</p></section>
-  <section><h2>Remove access or uninstall</h2><p>Use <strong>Remove page access</strong> in the popup to disable page features and release their site permissions. Basic blocking remains available.</p><p>To uninstall, click <strong>Remove</strong> on AdAegis in the Extensions page. You can then delete the extracted folder.</p></section>
-  <section><h2>If Load unpacked is unavailable</h2><p>A work/school browser policy or your browser variant may restrict it. Ask the administrator or use a supported personal desktop profile. This package does not change policies or bypass browser protections.</p><p>This desktop extension is not an installer for the Android or iPhone Chrome apps.</p></section>
-  <section><h2>License</h2><p>AdAegis is licensed under the Apache License, Version 2.0. See the included <a href="LICENSE">LICENSE</a> and <a href="NOTICE">NOTICE</a> files for terms and attribution.</p></section>
-  <footer>This is a testing build, not a security certification. Full static checking and live-browser verification are still pending. See SECURITY.md for the hard-coded limits and known testing gaps.</footer>
+  <section class="note"><h2>What is on by default?</h2><p>Network blocking. Page cleanup and YouTube filtering start off; turn either on in the popup if you want it. Chrome will ask for the site access that feature needs.</p><p>Reload the site after you enable a feature. YouTube filtering is experimental — turn it off and reload if playback breaks.</p></section>
+  <section><h2>Update without losing settings</h2><p>Download the next ZIP from GitHub Releases. Extract it somewhere else first, then copy the new files into the same AdAegis folder you originally loaded. Click Reload on the Extensions page, then reload open sites.</p><p>Do not remove the extension or change folders for a routine update. There is no auto-updater.</p></section>
+  <section><h2>Remove access or uninstall</h2><p>Use <strong>Remove page access</strong> in the popup to drop site permissions. Network blocking stays available.</p><p>To uninstall, click <strong>Remove</strong> on the Extensions page, then delete the extracted folder.</p></section>
+  <section><h2>If Load unpacked is missing</h2><p>A work or school policy may block it. Use a personal Chrome profile, or ask the administrator. This package does not change browser policy.</p><p>This is a desktop extension. It does not install on the Chrome iPhone or Android apps.</p></section>
+  <section><h2>License</h2><p>Apache License 2.0. See <a href="LICENSE">LICENSE</a> and <a href="NOTICE">NOTICE</a>.</p></section>
+  <footer>Early public release. See SECURITY.md for permissions and the YouTube experiment limits.</footer>
 </main>
 </body>
 </html>

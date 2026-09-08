@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 // Explicit inventory: no recursive repository copy, symlinks, secrets or dev dependencies.
 export const FILES = Object.freeze([
   "manifest.json", "popup.html", "popup.css", "INSTALL.html", "install.css", "SECURITY.md",
+  "icons/icon16.png", "icons/icon32.png", "icons/icon48.png", "icons/icon128.png",
   "dist/background.js", "dist/settings.js", "dist/popup.js", "dist/content.js", "dist/youtube.js",
   "rules/core.json", "LICENSE", "NOTICE"
 ]);

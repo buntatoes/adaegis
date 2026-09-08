@@ -7,15 +7,15 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body><main>
-  <h1>AdAegis <small>0.3.0</small></h1>
+  <h1><img src="icons/icon48.png" width="28" height="28" alt=""> AdAegis <small>0.3.0</small></h1>
   <p id="status" role="status">Loading protection…</p>
   <label>Network protection <input id="enabled" type="checkbox" disabled></label>
   <label>Page ad cleanup <input id="cosmetic" type="checkbox" disabled></label>
-  <p class="hint">Optional. Asks for access to HTTP/HTTPS websites to hide recognized ad containers.</p>
-  <label><span>Allow ads on this exact hostname <span id="host"></span></span><input id="site" type="checkbox" disabled></label>
+  <p class="hint">Optional. Asks for access to websites so it can hide recognized ad boxes.</p>
+  <label><span>Allow ads on this hostname <span id="host"></span></span><input id="site" type="checkbox" disabled></label>
   <h2>Experimental YouTube filtering</h2>
-  <label>Enable player experiment <input id="youtube" type="checkbox" disabled></label>
-  <p class="hint">Optional. Asks for YouTube access. Tries limited ad-data cleanup and available Skip buttons. Can disrupt playback.</p>
+  <label>Enable YouTube filtering <input id="youtube" type="checkbox" disabled></label>
+  <p class="hint">Optional. Asks for YouTube access. Tries to strip known ad data and click Skip. Can break playback.</p>
   <p id="notice" role="status" aria-live="polite">Reload the page after enabling a feature or changing a site exception. Turn the experiment off and reload if playback fails.</p>
   <button type="button" id="revoke" disabled>Remove page access</button>
   <footer>Local settings. No telemetry.<br><a href="INSTALL.html" target="_blank" rel="noopener">Install, update, and uninstall</a></footer>

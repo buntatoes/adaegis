@@ -1,8 +1,9 @@
 :root { color-scheme: dark; font-family: system-ui, sans-serif; }
 body { width: 340px; margin: 0; background: #101828; color: #f9fafb; }
 main { padding: 20px; }
-h1 { margin: 0; font-size: 22px; }
-h1 small { font-size: 12px; color: #b5c0d0; }
+h1 { margin: 0; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+h1 img { width: 28px; height: 28px; flex-shrink: 0; }
+h1 small { font-size: 12px; color: #b5c0d0; margin-left: auto; }
 h2 { font-size: 14px; color: #fdb022; margin-top: 20px; }
 p { font-size: 13px; line-height: 1.5; color: #b5c0d0; }
 label { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 0; font-size: 14px; }
