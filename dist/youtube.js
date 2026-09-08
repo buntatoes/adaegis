@@ -2,7 +2,7 @@
 (() => {
   // Hard-coded policy. No page message, remote list, or popup setting can widen it.
   const HOSTS = ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"];
-  const SKIP = ".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button-container button, .ytp-skip-ad-button button, .ytp-ad-skip-button-slot button, .ytmusic-skip-ad-button";
+  const SKIP = ".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button-container button, .ytp-skip-ad-button button, .ytp-ad-skip-button-slot button, .ytp-ad-overlay-close-button, .ytp-ad-overlay-close-container button, .ytmusic-skip-ad-button";
   const allowedHost = () => location.protocol === "https:" && !location.port && HOSTS.includes(location.hostname);
   const pagePath = () => location.pathname.replace(/\/$/, "") || "/";
   const sensitivePage = () =>
@@ -16,7 +16,12 @@
   };
   const playerPath = (path        ) => {
     const normalized = path.replace(/\/$/, "") || "/";
-    return normalized === "/youtubei/v1/player" || normalized === "/youtubei/v1/get_watch";
+    return normalized === "/youtubei/v1/player" ||
+      normalized === "/youtubei/v1/get_watch" ||
+      normalized === "/youtubei/v1/player/ad_break" ||
+      normalized === "/youtubei/v1/next" ||
+      normalized === "/youtubei/v1/reel/reel_item_watch" ||
+      normalized === "/youtubei/v1/reel/reel_watch_sequence";
   };
   const jsonContent = (type               ) => {
     const kind = type?.split(";")[0].trim().toLowerCase() ?? "";
@@ -69,6 +74,39 @@
     descriptors.playerConfig = { ...config, value: Object.create(Object.prototype, nested) };
     return true;
   }
+  function dropAds(descriptors                       )          {
+    let changed = dropConfig(descriptors);
+    for (const key of ["adPlacements", "playerAds", "adSlots"]) {
+      const descriptor = descriptors[key];
+      if (descriptor?.configurable && Array.isArray(descriptor.value)) {
+        delete descriptors[key];
+        changed = true;
+      }
+    }
+    const heartbeat = descriptors.adBreakHeartbeatParams;
+    if (heartbeat?.configurable && "value" in heartbeat && heartbeat.value !== undefined) {
+      delete descriptors.adBreakHeartbeatParams;
+      changed = true;
+    }
+    return changed;
+  }
+  function isPlayer(descriptors                       )          {
+    const id = dataProperty(descriptors.videoDetails?.value, "videoId");
+    const status = dataProperty(descriptors.playabilityStatus?.value, "status");
+    return typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id) && status === "OK";
+  }
+  function otherPlayer(descriptors                       )          {
+    const id = dataProperty(descriptors.videoDetails?.value, "videoId");
+    return typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id) && !isPlayer(descriptors);
+  }
+  function hasAdKeys(descriptors                       )          {
+    return ["adPlacements", "playerAds", "adSlots"].some(key => {
+      const descriptor = descriptors[key];
+      return !!descriptor?.configurable && Array.isArray(descriptor.value);
+    }) || (descriptors.adBreakHeartbeatParams?.configurable === true &&
+      "value" in descriptors.adBreakHeartbeatParams &&
+      descriptors.adBreakHeartbeatParams.value !== undefined);
+  }
   function clean(value         , depth = 0)          {
     if (!installed || !wanted || edits >= LIMITS.edits || !value || typeof value !== "object") return value;
     try {
@@ -76,23 +114,9 @@
       const descriptors = Object.getOwnPropertyDescriptors(value);
       if (Object.keys(descriptors).length > LIMITS.maxTopLevelKeys ||
           Object.values(descriptors).some(item => !("value" in item))) return value;
-      const id = dataProperty(descriptors.videoDetails?.value, "videoId");
-      const status = dataProperty(descriptors.playabilityStatus?.value, "status");
-      if (typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id) && status === "OK") {
-        let changed = dropConfig(descriptors);
-        for (const key of ["adPlacements", "playerAds", "adSlots"]) {
-          const descriptor = descriptors[key];
-          if (descriptor?.configurable && Array.isArray(descriptor.value)) {
-            delete descriptors[key];
-            changed = true;
-          }
-        }
-        const heartbeat = descriptors.adBreakHeartbeatParams;
-        if (heartbeat?.configurable && "value" in heartbeat && heartbeat.value !== undefined) {
-          delete descriptors.adBreakHeartbeatParams;
-          changed = true;
-        }
-        if (!changed) return value;
+      if (otherPlayer(descriptors)) return value;
+      if (isPlayer(descriptors) || hasAdKeys(descriptors)) {
+        if (!dropAds(descriptors)) return value;
         edits++;
         // A shallow copy changes only known ad fields. Auth, playback status,
         // video URLs, signatures, DRM, and every other property retain their values.
@@ -186,6 +210,9 @@
       const encoder = new TextEncoder();
       response.arrayBuffer = async () => encoder.encode(await asText()).buffer;
     }
+    if (typeof Blob === "function") {
+      response.blob = async () => new Blob([await asText()], { type: "application/json" });
+    }
   }
   function start()       {
     if (terminal || !wanted || !allowHooks()) return;
@@ -231,6 +258,13 @@
         };
         window.fetch = wrappedFetch;
         restore.push(() => { if (window.fetch === wrappedFetch) window.fetch = originalFetch; });
+        const originalParse = JSON.parse;
+        const wrappedParse                    = (text, reviver) => {
+          const parsed = originalParse(text, reviver);
+          return installed && wanted ? clean(parsed) : parsed;
+        };
+        JSON.parse = wrappedParse;
+        restore.push(() => { if (JSON.parse === wrappedParse) JSON.parse = originalParse; });
         const XHR = window.XMLHttpRequest;
         if (typeof XHR === "function") {
           const proto = XHR.prototype;
@@ -250,7 +284,7 @@
                 if (kind === "arraybuffer" || kind === "blob" || kind === "document") return;
                 if (!jsonContent(this.getResponseHeader("content-type"))) return;
                 try {
-                  const raw = this.responseType === "json" ? this.response : JSON.parse(this.responseText);
+                  const raw = this.responseType === "json" ? this.response : originalParse(this.responseText);
                   const cleaned = clean(raw);
                   if (cleaned === raw) return;
                   const text = JSON.stringify(cleaned);
@@ -288,9 +322,20 @@
   const inPlayer = (target                    )                             =>
     target instanceof HTMLVideoElement &&
       !!(target.closest("#movie_player") || target.closest("ytmusic-player"));
-  const onError = (event       ) => { if (inPlayer(event.target)) stop("playback-error"); };
+  const adPlayer = (player                )          => {
+    const list = player?.classList;
+    return !!list && (list.contains("ad-showing") || list.contains("ad-interrupting"));
+  };
+  const playerFromVideo = (video                  )                 =>
+    video.closest("#movie_player") || video.closest("ytmusic-player");
+  const onError = (event       ) => {
+    if (!inPlayer(event.target)) return;
+    if (adPlayer(playerFromVideo(event.target))) return;
+    stop("playback-error");
+  };
   const onWaiting = (event       ) => {
     if (!inPlayer(event.target) || stallTimer !== undefined) return;
+    if (adPlayer(playerFromVideo(event.target))) return;
     const video = event.target;
     stallTimer = window.setTimeout(() => {
       stallTimer = undefined;
@@ -303,11 +348,17 @@
     stallTimer = undefined;
   };
   function skipNodes(player         )            {
-    if (typeof player.querySelectorAll === "function") {
-      const list = player.querySelectorAll(SKIP);
-      if (list.length) return [...list];
+    const roots                    = [player];
+    const shadow = (player                                                ).shadowRoot;
+    if (shadow) roots.push(shadow);
+    const found            = [];
+    for (const root of roots) {
+      if (typeof (root           ).querySelectorAll === "function") {
+        found.push(...[...(root           ).querySelectorAll(SKIP)]);
+      }
     }
-    const one = player.querySelector(SKIP);
+    if (found.length) return found;
+    const one = typeof player.querySelector === "function" ? player.querySelector(SKIP) : null;
     return one ? [one] : [];
   }
   function skipButton(node         )                           {
@@ -329,6 +380,21 @@
     recentClicks.push(now);
     clickCount++;
   }
+  function skipVideo(player         )          {
+    const node = typeof player.querySelector === "function" ? player.querySelector("video") : null;
+    if (!(node instanceof HTMLVideoElement)) return false;
+    try {
+      if (node.duration === Infinity) {
+        if (node.playbackRate < 16) node.playbackRate = 16;
+        node.muted = true;
+        return true;
+      }
+      if (!Number.isFinite(node.duration) || node.duration <= 0) return false;
+      if (node.currentTime >= node.duration - 0.15) return false;
+      node.currentTime = node.duration;
+      return true;
+    } catch { return false; }
+  }
   function inspect()       {
     pending = undefined;
     if (!installed || !wanted) return;
@@ -344,7 +410,7 @@
     if (errorPanel?.getClientRects().length && getComputedStyle(errorPanel).visibility !== "hidden") {
       stop("player-error"); return;
     }
-    if (!player.classList.contains("ad-showing") && !player.classList.contains("ad-interrupting")) return;
+    if (!adPlayer(player)) return;
     const now = Date.now();
     if (!withinBudget(now)) return;
     for (const node of skipNodes(player)) {
@@ -353,6 +419,10 @@
       clicked.add(button);
       takeClick(now);
       button.click();
+      return;
+    }
+    if (skipVideo(player)) {
+      takeClick(now);
       return;
     }
     const skipAd = (player                        ).skipAd;
