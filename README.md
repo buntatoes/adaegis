@@ -25,7 +25,8 @@ the detailed implementation history.
 
 ## Install without coding
 
-Use the ready-made **adaegis-v0.3.0-chromium.zip** supplied by the project owner.
+Use the ready-made **adaegis-v0.3.0-chromium.zip** from
+[GitHub Releases](https://github.com/buntatoes/adaegis/releases).
 No Node.js, terminal, administrator installer, or build step is needed.
 
 1. Extract the ZIP and keep the **AdAegis** folder in a permanent location.
@@ -41,7 +42,6 @@ extensions; the package does not bypass such policies.
 
 You can also download this repository's source archive, extract it and select
 the root folder: the generated dist/ files are committed.
-The GitHub repository remains private, so downloads there require access.
 
 ### Updating and uninstalling
 
@@ -175,4 +175,3 @@ terms; the full LICENSE controls.
 
 No uBlock source, assets or filter lists are included. Third-party development
 dependencies retain their own licenses and are not bundled in installation ZIPs.
-Repository access remains private; licensing does not change GitHub visibility.

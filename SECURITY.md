@@ -92,6 +92,8 @@ change these protections.
 
 ## Reporting
 
-Report suspected vulnerabilities privately to the repository owner through a
-trusted existing contact. Do not post credentials or private browsing data in a
-public issue. Disable the affected feature while a report is investigated.
+Report suspected vulnerabilities with
+[GitHub private vulnerability reporting](https://github.com/buntatoes/adaegis/security/advisories/new).
+Do not open a public issue for a vulnerability and do not include credentials
+or private browsing data. Disable the affected feature while a report is
+investigated.

@@ -6,6 +6,13 @@ Store publications or an independent security certification.
 
 ## Unreleased
 
+### Public distribution — 2026-09-08
+
+- Point installation docs at GitHub Releases instead of a private hand-off.
+- Route vulnerability reports to GitHub private vulnerability reporting.
+- Keep commit metadata on the GitHub noreply address so a personal mailbox
+  is not published with the source history.
+
 ### Licensing — 2026-09-07
 
 - Adopt Apache License 2.0 for AdAegis's original code, bundled rules and documentation.
@@ -23,7 +30,7 @@ Store publications or an independent security certification.
 
 ## 0.3.0 — 2026-09-06
 
-[Implementation commit](https://github.com/buntatoes/adaegis/commit/cc5efb31a51382e2e55640b4643c3d929425080e)
+[Implementation commit](https://github.com/buntatoes/adaegis/commit/99177a76b0a7f5ed2512d0712fd3a4a63625a985)
 
 ### Installation and packaging
 
@@ -98,7 +105,7 @@ Store publications or an independent security certification.
 
 ## 0.2.0 — 2026-09-06
 
-[Implementation commit](https://github.com/buntatoes/adaegis/commit/ea9063a81b2c7bebaeb359d9e3d87ac341cac53e)
+[Implementation commit](https://github.com/buntatoes/adaegis/commit/5a9c2982dc8e4d0ef7029c4f70ab26f7ce7c7649)
 
 ### Added
 
@@ -146,11 +153,11 @@ Store publications or an independent security certification.
 
 ## 0.1.0 — 2026-09-06
 
-[Initial setup completed](https://github.com/buntatoes/adaegis/commit/effd5f913197a36b3ce9604c00895ec31c8021d6)
+[Initial setup completed](https://github.com/buntatoes/adaegis/commit/33123269c62a5eed7f1923f35e059dd70127fe74)
 
 ### Added
 
-- Initialize the private repository with original TypeScript Manifest V3 code.
+- Initialize the repository with original TypeScript Manifest V3 code.
 - Add a service worker and static `declarativeNetRequest` ruleset.
 - Include eight hand-authored rules for DoubleClick, Google Syndication, Google
   Ad Services, AppNexus, Amazon Ad System, Criteo, Taboola and Outbrain domains.
