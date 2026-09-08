@@ -1,6 +1,6 @@
 # Security
 
-AdAegis 0.3.3 is an early public release. It is not an audited security product.
+AdAegis 0.3.4 is an early public release. It is not an audited security product.
 
 ## Permissions
 
@@ -22,8 +22,8 @@ Limits are compiled into the extension. A website cannot raise them.
 | What | Limit |
 | --- | --- |
 | Where it runs | Top frame, HTTPS, default port, three YouTube hosts |
-| Skip clicks | Home, `/watch`, and `/shorts/` plus an 11-character video ID |
-| Player responses | Same-origin `/youtubei/v1/player` JSON, success, no redirect. Also on search and channel pages while the experiment is on |
+| Skip clicks | Home, `/watch`, and `/shorts/` plus an 11-character video ID. Trailing slashes on those paths still count. |
+| Player responses | Same-origin `/youtubei/v1/player` and `/youtubei/v1/get_watch` JSON, success, no redirect. Nested `playerResponse` on those replies only. Also on search and channel pages while the experiment is on |
 | Data edits | Only `adPlacements`, `playerAds`, and `adSlots` on a recognized OK player object |
 | Volume | At most 200 edited responses per page; at most 128 top-level keys inspected |
 | Skip button | Visible, enabled `button` outside a form, under an ad-showing player |

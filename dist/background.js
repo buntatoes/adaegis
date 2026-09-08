@@ -51,7 +51,10 @@ async function registerScripts(settings          , previous           )         
   const owned = ["page-cleanup", "youtube-control", "youtube-experiment"];
   const present = new Set(current.map(script => script.id));
   const obsolete = current.filter(script => owned.includes(script.id) && !desired.some(next => next.id === script.id));
-  if (obsolete.length) await chrome.scripting.unregisterContentScripts({ ids: obsolete.map(script => script.id) });
+  if (obsolete.length) {
+    await chrome.scripting.unregisterContentScripts({ ids: obsolete.map(script => script.id) });
+    for (const script of obsolete) present.delete(script.id);
+  }
   const added                                             = [];
   for (const script of desired) {
     if (present.has(script.id)) await chrome.scripting.updateContentScripts([script]);
