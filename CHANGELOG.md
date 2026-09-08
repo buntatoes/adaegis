@@ -2,6 +2,19 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.3.3 — 2026-09-08
+
+Bug fixes for 0.3.2.
+
+### Fixed
+
+- Clicking a video from search or a channel no longer drops YouTube player filtering for that video
+- Skip still only runs on home, watch, and Shorts. Account and billing pages still turn the experiment off
+- Clearing a site exception can start page features on that host's already-open tabs
+- Frozen tabs are skipped when injecting into open pages
+
+Playback errors, stalls, and the scan limit still stay off until you reload.
+
 ## 0.3.2 — 2026-09-08
 
 Page cleanup and YouTube filtering on tabs that are already open, YouTube in-page navigation, and a larger bundled block list.

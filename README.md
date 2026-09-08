@@ -6,13 +6,13 @@
 
 A small ad blocker for desktop Chrome and Chromium 120+. Network blocking is on by default. Page cleanup and YouTube filtering are optional and start off.
 
-**0.3.2** is the current public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
+**0.3.3** is the current public release. It is loaded unpacked from GitHub, not listed on the Chrome Web Store.
 
 [Install](#install) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [License](LICENSE)
 
 ## Install
 
-Download **[adaegis-v0.3.2-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
+Download **[adaegis-v0.3.3-chromium.zip](https://github.com/buntatoes/adaegis/releases/latest)** from [Releases](https://github.com/buntatoes/adaegis/releases). You do not need Node.js.
 
 1. Extract the ZIP and keep the **AdAegis** folder somewhere permanent, such as Documents.
 2. Open `chrome://extensions`.
@@ -40,7 +40,7 @@ Off by default. If you enable it, Chrome will ask for YouTube access. On home, w
 - Strip known ad fields from an eligible player response
 - Click a visible Skip button during an ad
 
-Moving between those pages without a full reload (home to a video, for example) keeps filtering in place. Search, channels, and other YouTube URLs are left alone until you return to home, watch, or Shorts.
+Clicks from home, search, or a channel to a video stay in that same page. Player filtering stays ready on those YouTube pages so the next video is not missed. Skip clicks still only happen on home, watch, and Shorts. Account and billing URLs are left alone.
 
 A video that was already playing when you turned the experiment on may need a reload or the next video. It will not catch every ad, and it can break playback. If that happens, turn it off and reload.
 

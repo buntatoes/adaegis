@@ -20,7 +20,7 @@ async function access(): Promise<{ cosmetic: boolean; youtube: boolean }> {
   ]);
   return { cosmetic, youtube };
 }
-async function registerScripts(settings: Settings): Promise<void> {
+async function registerScripts(settings: Settings, previous?: Settings): Promise<void> {
   const granted = await access();
   const current = await chrome.scripting.getRegisteredContentScripts();
   const desired: chrome.scripting.RegisteredContentScript[] = [];
@@ -59,7 +59,8 @@ async function registerScripts(settings: Settings): Promise<void> {
       added.push(script);
     }
   }
-  await injectOpenTabs(added, settings.allowlist);
+  const allowlistChanged = !!previous && previous.allowlist.join("\0") !== settings.allowlist.join("\0");
+  await injectOpenTabs(allowlistChanged ? desired : added, settings.allowlist);
 }
 function scriptApplies(url: string, script: chrome.scripting.RegisteredContentScript, allowlist: string[]): boolean {
   const host = hostname(url);
@@ -77,6 +78,7 @@ async function injectOpenTabs(scripts: chrome.scripting.RegisteredContentScript[
   try { tabs = await chrome.tabs.query({}); } catch { return; }
   await Promise.all(tabs.map(async tab => {
     if (tab.id === undefined || tab.id < 0 || tab.discarded || !tab.url) return;
+    if ((tab as { frozen?: boolean }).frozen) return;
     for (const script of ordered) {
       if (!script.js?.length || !scriptApplies(tab.url, script, allowlist)) continue;
       try {
@@ -96,7 +98,7 @@ async function notifyPages(): Promise<void> {
   await Promise.all(tabs.filter(tab => tab.id !== undefined).map(tab =>
     chrome.tabs.sendMessage(tab.id!, { type: "refresh-policy" }, { frameId: 0 }).catch(() => undefined)));
 }
-async function apply(settings: Settings): Promise<void> {
+async function apply(settings: Settings, previous?: Settings): Promise<void> {
   const dnr = chrome.declarativeNetRequest;
   const current = await dnr.getDynamicRules();
   await dnr.updateDynamicRules({
@@ -107,7 +109,7 @@ async function apply(settings: Settings): Promise<void> {
     enableRulesetIds: settings.enabled ? ["core"] : [],
     disableRulesetIds: settings.enabled ? [] : ["core"]
   });
-  await registerScripts(settings);
+  await registerScripts(settings, previous);
   await dnr.setExtensionActionOptions({ displayActionCountAsBadgeText: settings.enabled });
   await chrome.action.setBadgeText({ text: settings.enabled ? "" : "OFF" });
   await chrome.action.setBadgeBackgroundColor({ color: settings.enabled ? "#126c54" : "#b42318" });
@@ -116,7 +118,7 @@ async function change(update: (previous: Settings) => Settings): Promise<Setting
   const previous = await read();
   const next = update(previous);
   try {
-    await apply(next);
+    await apply(next, previous);
     await chrome.storage.local.set(next);
   } catch (error) {
     await apply(previous).catch(() => console.error("[AdAegis] Reload required after a settings error."));
