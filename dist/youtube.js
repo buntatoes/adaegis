@@ -2,6 +2,7 @@
 (() => {
   // Hard-coded policy. No page message, remote list, or popup setting can widen it.
   const HOSTS = ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"];
+  const SKIP = ".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button-container button, .ytp-skip-ad-button button, .ytp-ad-skip-button-slot button, .ytmusic-skip-ad-button";
   const allowedHost = () => location.protocol === "https:" && !location.port && HOSTS.includes(location.hostname);
   const pagePath = () => location.pathname.replace(/\/$/, "") || "/";
   const sensitivePage = () =>
@@ -17,6 +18,10 @@
     const normalized = path.replace(/\/$/, "") || "/";
     return normalized === "/youtubei/v1/player" || normalized === "/youtubei/v1/get_watch";
   };
+  const jsonContent = (type               ) => {
+    const kind = type?.split(";")[0].trim().toLowerCase() ?? "";
+    return !kind || kind === "application/json" || kind === "text/plain";
+  };
   const videoId = () => {
     const shorts = /^\/shorts\/([A-Za-z0-9_-]{11})$/.exec(pagePath());
     if (shorts) return shorts[1];
@@ -27,7 +32,7 @@
   if (window.top !== window || !allowedHost()) return;
   const LIMITS = Object.freeze({
     edits: 200, scans: 10000, clicks: 100, clicksPerMinute: 10,
-    clickCooldownMs: 2000, scanDelayMs: 250, stallMs: 15000, maxTopLevelKeys: 128
+    clickCooldownMs: 2000, scanDelayMs: 250, stallMs: 15000, maxTopLevelKeys: 256
   });
   const TERMINAL = new Set([
     "playback-error", "playback-stalled", "player-error", "scan-limit", "initialization-error"
@@ -54,6 +59,16 @@
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     return descriptor && "value" in descriptor ? descriptor.value : undefined;
   }
+  function dropConfig(descriptors                       )          {
+    const config = descriptors.playerConfig;
+    if (!config?.configurable || !("value" in config) || !config.value || typeof config.value !== "object") return false;
+    if (Object.getPrototypeOf(config.value) !== Object.prototype) return false;
+    const nested = Object.getOwnPropertyDescriptors(config.value);
+    if (Object.values(nested).some(item => !("value" in item)) || !nested.ssapConfig?.configurable) return false;
+    delete nested.ssapConfig;
+    descriptors.playerConfig = { ...config, value: Object.create(Object.prototype, nested) };
+    return true;
+  }
   function clean(value         , depth = 0)          {
     if (!installed || !wanted || edits >= LIMITS.edits || !value || typeof value !== "object") return value;
     try {
@@ -64,7 +79,7 @@
       const id = dataProperty(descriptors.videoDetails?.value, "videoId");
       const status = dataProperty(descriptors.playabilityStatus?.value, "status");
       if (typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id) && status === "OK") {
-        let changed = false;
+        let changed = dropConfig(descriptors);
         for (const key of ["adPlacements", "playerAds", "adSlots"]) {
           const descriptor = descriptors[key];
           if (descriptor?.configurable && Array.isArray(descriptor.value)) {
@@ -72,9 +87,14 @@
             changed = true;
           }
         }
+        const heartbeat = descriptors.adBreakHeartbeatParams;
+        if (heartbeat?.configurable && "value" in heartbeat && heartbeat.value !== undefined) {
+          delete descriptors.adBreakHeartbeatParams;
+          changed = true;
+        }
         if (!changed) return value;
         edits++;
-        // A shallow copy changes only the three ad fields. Auth, playback status,
+        // A shallow copy changes only known ad fields. Auth, playback status,
         // video URLs, signatures, DRM, and every other property retain their values.
         return Object.create(Object.prototype, descriptors);
       }
@@ -139,6 +159,7 @@
   }
   function attachCleaner(response          )       {
     const originalText = response.text.bind(response);
+    const originalClone = response.clone.bind(response);
     let parsed                              ;
     const body = () => {
       parsed ??= originalText().then(raw => {
@@ -147,14 +168,24 @@
       });
       return parsed;
     };
+    const asText = async () => {
+      const value = await body();
+      return typeof value === "string" ? value : JSON.stringify(value);
+    };
     response.json = async () => {
       const value = await body();
       return typeof value === "string" ? JSON.parse(value) : value;
     };
-    response.text = async () => {
-      const value = await body();
-      return typeof value === "string" ? value : JSON.stringify(value);
+    response.text = asText;
+    response.clone = () => {
+      const copy = originalClone();
+      attachCleaner(copy);
+      return copy;
     };
+    if (typeof TextEncoder === "function") {
+      const encoder = new TextEncoder();
+      response.arrayBuffer = async () => encoder.encode(await asText()).buffer;
+    }
   }
   function start()       {
     if (terminal || !wanted || !allowHooks()) return;
@@ -193,7 +224,7 @@
             const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.href);
             if (url.origin !== location.origin || !playerPath(url.pathname) ||
                 response.redirected || (response.url && new URL(response.url).origin !== location.origin) ||
-                !response.ok || response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return response;
+                !response.ok || !jsonContent(response.headers.get("content-type"))) return response;
             attachCleaner(response);
           } catch { /* Preserve unexpected response formats. */ }
           return response;
@@ -217,7 +248,7 @@
                 if (!installed || !wanted || this.readyState !== 4 || this.status < 200 || this.status >= 300) return;
                 const kind = this.responseType;
                 if (kind === "arraybuffer" || kind === "blob" || kind === "document") return;
-                if (this.getResponseHeader("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return;
+                if (!jsonContent(this.getResponseHeader("content-type"))) return;
                 try {
                   const raw = this.responseType === "json" ? this.response : JSON.parse(this.responseText);
                   const cleaned = clean(raw);
@@ -271,6 +302,33 @@
     if (stallTimer !== undefined) clearTimeout(stallTimer);
     stallTimer = undefined;
   };
+  function skipNodes(player         )            {
+    if (typeof player.querySelectorAll === "function") {
+      const list = player.querySelectorAll(SKIP);
+      if (list.length) return [...list];
+    }
+    const one = player.querySelector(SKIP);
+    return one ? [one] : [];
+  }
+  function skipButton(node         )                           {
+    const button = node instanceof HTMLButtonElement ? node :
+      (typeof node.querySelector === "function" ? node.querySelector("button") : null);
+    if (!(button instanceof HTMLButtonElement) || button.form || !button.isConnected || clicked.has(button) ||
+        !button.getClientRects().length || button.matches(":disabled, [aria-disabled='true']")) return null;
+    const css = getComputedStyle(button);
+    if (css.visibility !== "visible" || css.display === "none" || css.opacity === "0" || css.pointerEvents === "none") return null;
+    return button;
+  }
+  function withinBudget(now        )          {
+    recentClicks = recentClicks.filter(at => now - at < 60000);
+    return now - lastClick >= LIMITS.clickCooldownMs && recentClicks.length < LIMITS.clicksPerMinute &&
+      clickCount < LIMITS.clicks;
+  }
+  function takeClick(now        )       {
+    lastClick = now;
+    recentClicks.push(now);
+    clickCount++;
+  }
   function inspect()       {
     pending = undefined;
     if (!installed || !wanted) return;
@@ -287,23 +345,21 @@
       stop("player-error"); return;
     }
     if (!player.classList.contains("ad-showing") && !player.classList.contains("ad-interrupting")) return;
-    const button = player.querySelector(
-      ".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytmusic-skip-ad-button"
-    );
-    if (!(button instanceof HTMLButtonElement) || button.type !== "button" || button.form ||
-        !button.isConnected || clicked.has(button) || !button.getClientRects().length ||
-        button.matches(":disabled, [aria-disabled='true']")) return;
-    const css = getComputedStyle(button);
-    if (css.visibility !== "visible" || css.display === "none" || css.opacity === "0" || css.pointerEvents === "none") return;
     const now = Date.now();
-    recentClicks = recentClicks.filter(at => now - at < 60000);
-    if (now - lastClick < LIMITS.clickCooldownMs || recentClicks.length >= LIMITS.clicksPerMinute ||
-        clickCount >= LIMITS.clicks) return;
-    clicked.add(button);
-    lastClick = now;
-    recentClicks.push(now);
-    clickCount++;
-    button.click();
+    if (!withinBudget(now)) return;
+    for (const node of skipNodes(player)) {
+      const button = skipButton(node);
+      if (!button) continue;
+      clicked.add(button);
+      takeClick(now);
+      button.click();
+      return;
+    }
+    const skipAd = (player                        ).skipAd;
+    if (typeof skipAd === "function") {
+      takeClick(now);
+      skipAd.call(player);
+    }
   }
   const observer = new MutationObserver(() => {
     if (observing && pending === undefined) pending = window.setTimeout(inspect, LIMITS.scanDelayMs);

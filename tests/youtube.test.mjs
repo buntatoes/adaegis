@@ -6,7 +6,8 @@ const code = await readFile(new URL("../dist/youtube.js", import.meta.url), "utf
 const fixture = () => ({
   videoDetails: { videoId: "Abc12345678" }, playabilityStatus: { status: "OK" },
   streamingData: { adaptiveFormats: [{ url: "https://video.invalid/content" }] },
-  adPlacements: [{}], playerAds: [{}], adSlots: [{}]
+  playerConfig: { ssapConfig: { enabled: true }, audioConfig: { loudness: -1 } },
+  adPlacements: [{}], playerAds: [{}], adSlots: [{}], adBreakHeartbeatParams: { interval: 5 }
 });
 class Button {
   type = "button"; form = null; isConnected = true; clicks = 0;
@@ -24,7 +25,7 @@ function setup({ initial = fixture(), player = null, fetchImpl, descriptor,
   const originalFetch = fetchImpl ?? (async () => new Response(JSON.stringify(fixture()), { headers: { "content-type": "application/json" } }));
   const context = {
     location: new URL(url),
-    URL, URLSearchParams, JSON, Request, Response, Event, Object, HTMLVideoElement: Video, HTMLButtonElement: Button,
+    URL, URLSearchParams, JSON, Request, Response, Event, Object, TextEncoder, HTMLVideoElement: Video, HTMLButtonElement: Button,
     Date: { now: () => now },
     document: {
       documentElement: { dataset: {} }, querySelector: () => player,
@@ -54,6 +55,9 @@ function setup({ initial = fixture(), player = null, fetchImpl, descriptor,
 test("startup and future player responses lose only recognized ad arrays", () => {
   const { context } = setup();
   assert.equal(context.ytInitialPlayerResponse.adPlacements, undefined);
+  assert.equal(context.ytInitialPlayerResponse.adBreakHeartbeatParams, undefined);
+  assert.equal(context.ytInitialPlayerResponse.playerConfig.ssapConfig, undefined);
+  assert.equal(context.ytInitialPlayerResponse.playerConfig.audioConfig.loudness, -1);
   assert.equal(context.ytInitialPlayerResponse.streamingData.adaptiveFormats.length, 1);
   context.ytInitialPlayerResponse = fixture();
   assert.equal(context.ytInitialPlayerResponse.playerAds, undefined);
@@ -184,6 +188,9 @@ test("metadata cleanup returns a copy and preserves auth, DRM and stream fields"
   for (const key of ["videoDetails", "playabilityStatus", "streamingData", "licenseInfos", "auth", "trackingParams"]) {
     assert.equal(result[key], original[key]);
   }
+  assert.equal(result.playerConfig.audioConfig, original.playerConfig.audioConfig);
+  assert.equal(result.playerConfig.ssapConfig, undefined);
+  assert.ok(original.playerConfig.ssapConfig);
 });
 test("accessors, prototype-bearing objects and non-OK player states are never sanitized", () => {
   let invoked = 0;
@@ -208,13 +215,47 @@ test("ad-data changes stop at 200 per document", () => {
   }
   assert.equal(modified, 200);
 });
+test("HTML default submit type outside a form is still Skip", () => {
+  const button = Object.assign(new Button(), { type: "submit" });
+  const player = { classList: { contains: () => true }, querySelector: s => s === ".ytp-error" ? null : button };
+  const { observers, timers } = setup({ player });
+  observers[0].callback();
+  timers.get(1)();
+  assert.equal(button.clicks, 1);
+});
 test("form buttons and arbitrary matching elements cannot be clicked", () => {
-  for (const button of [Object.assign(new Button(), { type: "submit" }),
-    Object.assign(new Button(), { form: {} }), { ...new Button(), click: () => assert.fail() }]) {
+  for (const button of [Object.assign(new Button(), { form: {} }), { ...new Button(), click: () => assert.fail() }]) {
     const player = { classList: { contains: () => true }, querySelector: s => s === ".ytp-error" ? null : button };
     setup({ player });
     assert.equal(button.clicks, 0);
   }
+});
+test("a later visible Skip is used when an earlier match is hidden", () => {
+  const hidden = new Button();
+  hidden.getClientRects = () => [];
+  const visible = new Button();
+  const player = {
+    classList: { contains: () => true },
+    querySelector: s => s === ".ytp-error" ? null : hidden,
+    querySelectorAll: () => [hidden, visible]
+  };
+  const { observers, timers } = setup({ player });
+  observers[0].callback();
+  timers.get(1)();
+  assert.equal(hidden.clicks, 0);
+  assert.equal(visible.clicks, 1);
+});
+test("player skipAd is used when no Skip button is present", () => {
+  let skips = 0;
+  const player = {
+    classList: { contains: () => true },
+    querySelector: () => null,
+    skipAd() { skips++; }
+  };
+  const { observers, timers } = setup({ player });
+  observers[0].callback();
+  timers.get(1)();
+  assert.equal(skips, 1);
 });
 test("rotating skip elements respect cooldown and per-minute limits", () => {
   let button = new Button();
@@ -440,6 +481,21 @@ test("Music browse pages keep skip available; account still restores hooks", () 
   browse.context.location = new URL("https://music.youtube.com/account");
   browse.events.get("yt-navigate-finish")();
   assert.equal(browse.context.fetch, browse.originalFetch);
+});
+test("cloned player fetch JSON and arrayBuffer lose ad fields", async () => {
+  const { context } = setup();
+  const copy = (await context.fetch("/youtubei/v1/player")).clone();
+  const body = await copy.json();
+  assert.equal(body.adSlots, undefined);
+  assert.equal(body.adBreakHeartbeatParams, undefined);
+  const buffer = await (await context.fetch("/youtubei/v1/player")).arrayBuffer();
+  assert.equal(JSON.parse(new TextDecoder().decode(buffer)).playerAds, undefined);
+});
+test("player JSON without a content-type is still cleaned", async () => {
+  const { context } = setup({
+    fetchImpl: async () => new Response(JSON.stringify(fixture()), { headers: {} })
+  });
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adPlacements, undefined);
 });
 test("same-origin player XHR JSON loses only ad arrays", () => {
   function XHR() {
