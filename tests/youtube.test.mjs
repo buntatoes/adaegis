@@ -28,6 +28,7 @@ function setup({ initial = fixture(), player = null, fetchImpl, descriptor,
     URL, URLSearchParams, Request, Response, Event, Object, TextEncoder, Blob, HTMLVideoElement: Video, HTMLButtonElement: Button,
     JSON: { parse: JSON.parse.bind(JSON), stringify: JSON.stringify.bind(JSON) },
     Date: { now: () => now },
+    ReadableStream,
     document: {
       documentElement: { dataset: {} }, querySelector: () => player,
       addEventListener: add, removeEventListener: remove
@@ -461,6 +462,17 @@ test("the same video ID after an error stays off", () => {
   events.get("yt-navigate-finish")();
   assert.equal(context.fetch, originalFetch);
 });
+test("a new video after an error resumes if the experiment was toggled during navigation", async () => {
+  const { context, events, originalFetch, Video } = setup();
+  events.get("error")({ target: new Video() });
+  events.get("adaegis:youtube-stop")();
+  context.location = new URL("https://www.youtube.com/watch?v=Xyz98765432");
+  events.get("yt-navigate-finish")();
+  assert.equal(context.fetch, originalFetch);
+  events.get("adaegis:youtube-start")();
+  assert.notEqual(context.fetch, originalFetch);
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adSlots, undefined);
+});
 test("YouTube Music installs hooks and clicks Skip on a music player", () => {
   const button = new Button();
   const player = { classList: { contains: () => true }, querySelector: s => s === ".ytp-error" ? null : button };
@@ -539,6 +551,14 @@ test("JSON.parse of player JSON and ad-only payloads lose ad fields", () => {
   assert.equal(adsOnly.playerAds, undefined);
   assert.equal(context.JSON.parse(JSON.stringify({ comments: [1] })).comments[0], 1);
 });
+test("JSON.parse of ad-shaped objects does not exhaust the player-edit cap", async () => {
+  const { context } = setup();
+  for (let i = 0; i < 200; i++) {
+    const parsed = context.JSON.parse(JSON.stringify({ adPlacements: [{}], playerAds: [{}] }));
+    assert.equal(parsed.adPlacements, undefined);
+  }
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adPlacements, undefined);
+});
 test("ad_break and next player JSON lose ad fields", async () => {
   const nested = fixture();
   const { context } = setup({ fetchImpl: async url => new Response(JSON.stringify(
@@ -552,6 +572,13 @@ test("cloned player blob loses ad fields", async () => {
   const { context } = setup();
   const blob = await (await context.fetch("/youtubei/v1/player")).blob();
   assert.equal(JSON.parse(await blob.text()).adSlots, undefined);
+});
+test("player fetch body stream loses ad fields", async () => {
+  const { context } = setup();
+  const response = await context.fetch("/youtubei/v1/player");
+  const raw = await new Response(response.body).text();
+  assert.equal(JSON.parse(raw).adPlacements, undefined);
+  assert.equal(JSON.parse(raw).adBreakHeartbeatParams, undefined);
 });
 test("ad-showing video is seeked to the end when Skip is missing", () => {
   let node;

@@ -1,6 +1,6 @@
 # Security
 
-AdAegis 0.4.1.1 is an early public build. It is not an audited security product.
+AdAegis 0.4.2 is an early public build. It is not an audited security product.
 
 ## Permissions
 

@@ -106,8 +106,8 @@
       "value" in descriptors.adBreakHeartbeatParams &&
       descriptors.adBreakHeartbeatParams.value !== undefined);
   }
-  function clean(value: unknown, depth = 0): unknown {
-    if (!installed || !wanted || edits >= LIMITS.edits || !value || typeof value !== "object") return value;
+  function clean(value: unknown, depth = 0, count = true): unknown {
+    if (!installed || !wanted || (count && edits >= LIMITS.edits) || !value || typeof value !== "object") return value;
     try {
       if (Object.getPrototypeOf(value) !== Object.prototype) return value;
       const descriptors = Object.getOwnPropertyDescriptors(value);
@@ -116,14 +116,14 @@
       if (otherPlayer(descriptors)) return value;
       if (isPlayer(descriptors) || hasAdKeys(descriptors)) {
         if (!dropAds(descriptors)) return value;
-        edits++;
+        if (count) edits++;
         // A shallow copy changes only known ad fields. Auth, playback status,
         // video URLs, signatures, DRM, and every other property retain their values.
         return Object.create(Object.prototype, descriptors);
       }
       const nested = descriptors.playerResponse;
       if (depth > 0 || !nested?.configurable || !("value" in nested)) return value;
-      const cleaned = clean(nested.value, depth + 1);
+      const cleaned = clean(nested.value, depth + 1, count);
       if (cleaned === nested.value) return value;
       return Object.create(Object.prototype, { ...descriptors, playerResponse: { ...nested, value: cleaned } });
     } catch { return value; } // Accessors, proxies, or unfamiliar structures fail unchanged.
@@ -169,7 +169,7 @@
   }
   function rememberPage(): void {
     const key = pageKey();
-    if (!wanted || !key) return;
+    if (!key) return;
     if (seenKey && key !== seenKey) recover();
     seenKey = key;
   }
@@ -208,6 +208,22 @@
     if (typeof TextEncoder === "function") {
       const encoder = new TextEncoder();
       response.arrayBuffer = async () => encoder.encode(await asText()).buffer;
+      if (typeof ReadableStream === "function") {
+        Object.defineProperty(response, "body", {
+          configurable: true,
+          enumerable: true,
+          get() {
+            return new ReadableStream({
+              start(controller) {
+                void asText().then(text => {
+                  controller.enqueue(encoder.encode(text));
+                  controller.close();
+                }, error => controller.error(error));
+              }
+            });
+          }
+        });
+      }
     }
     if (typeof Blob === "function") {
       response.blob = async () => new Blob([await asText()], { type: "application/json" });
@@ -260,7 +276,7 @@
         const originalParse = JSON.parse;
         const wrappedParse: typeof JSON.parse = (text, reviver) => {
           const parsed = originalParse(text, reviver);
-          return installed && wanted ? clean(parsed) : parsed;
+          return installed && wanted ? clean(parsed, 0, false) : parsed;
         };
         JSON.parse = wrappedParse;
         restore.push(() => { if (JSON.parse === wrappedParse) JSON.parse = originalParse; });
@@ -434,7 +450,7 @@
     if (observing && pending === undefined) pending = window.setTimeout(inspect, LIMITS.scanDelayMs);
   });
   window.addEventListener("adaegis:youtube-stop", () => { wanted = false; stop(); });
-  window.addEventListener("adaegis:youtube-start", () => { wanted = true; start(); });
+  window.addEventListener("adaegis:youtube-start", () => { wanted = true; sync(); });
   for (const name of ["yt-navigate-finish", "yt-navigate-start", "yt-page-data-updated"]) {
     document.addEventListener(name, sync);
     window.addEventListener(name, sync);

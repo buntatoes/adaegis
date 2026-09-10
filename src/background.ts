@@ -1,12 +1,12 @@
 import {
-  normalize, hostname, validHost, exceptionRules, matchesPattern, pauseBadge,
-  ALL_SITES, YOUTUBE_SITES, MUSIC_SITES, PAUSE_MINUTES, RESUME_ALARM,
+  normalize, hostname, validHost, exceptionRules, matchesPattern,   pauseBadge,
+  ALL_SITES, YOUTUBE_SITES, MUSIC_SITES, PAUSE_MINUTES, RESUME_ALARM, BADGE_ALARM,
   isYoutubeHost, isMusicHost, type Settings
 } from "./settings.js";
 
 // Content scripts cannot read/write the global allowlist or settings directly.
-const storageReady = chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
-void storageReady.catch(() => console.error("[AdAegis] Settings access could not be restricted."));
+const storageReady = chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" })
+  .catch(() => console.error("[AdAegis] Settings access could not be restricted."));
 let queue: Promise<unknown> = Promise.resolve();
 function serialize<T>(operation: () => Promise<T>): Promise<T> {
   const result = queue.then(operation);
@@ -125,8 +125,10 @@ async function notifyPages(): Promise<void> {
 }
 async function syncAlarm(settings: Settings): Promise<void> {
   await chrome.alarms.clear(RESUME_ALARM);
+  await chrome.alarms.clear(BADGE_ALARM);
   if (!settings.enabled && settings.pauseUntil > Date.now()) {
     await chrome.alarms.create(RESUME_ALARM, { when: settings.pauseUntil });
+    await chrome.alarms.create(BADGE_ALARM, { periodInMinutes: 1 });
   }
 }
 async function apply(settings: Settings, previous?: Settings): Promise<void> {
@@ -184,6 +186,13 @@ chrome.runtime.onInstalled.addListener(() => { void initialize().catch(console.e
 chrome.runtime.onStartup.addListener(() => { void initialize().catch(console.error); });
 chrome.permissions.onRemoved.addListener(() => { void initialize().catch(console.error); });
 chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === BADGE_ALARM) {
+    void serialize(async () => {
+      const settings = await read();
+      await chrome.action.setBadgeText({ text: pauseBadge(settings) });
+    }).catch(console.error);
+    return;
+  }
   if (alarm.name !== RESUME_ALARM) return;
   void serialize(async () => {
     const settings = await read();
