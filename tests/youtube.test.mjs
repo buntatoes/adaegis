@@ -461,6 +461,17 @@ test("the same video ID after an error stays off", () => {
   events.get("yt-navigate-finish")();
   assert.equal(context.fetch, originalFetch);
 });
+test("a new video after an error resumes if the experiment was toggled during navigation", async () => {
+  const { context, events, originalFetch, Video } = setup();
+  events.get("error")({ target: new Video() });
+  events.get("adaegis:youtube-stop")();
+  context.location = new URL("https://www.youtube.com/watch?v=Xyz98765432");
+  events.get("yt-navigate-finish")();
+  assert.equal(context.fetch, originalFetch);
+  events.get("adaegis:youtube-start")();
+  assert.notEqual(context.fetch, originalFetch);
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adSlots, undefined);
+});
 test("YouTube Music installs hooks and clicks Skip on a music player", () => {
   const button = new Button();
   const player = { classList: { contains: () => true }, querySelector: s => s === ".ytp-error" ? null : button };
