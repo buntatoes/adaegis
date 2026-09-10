@@ -2,6 +2,12 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.4.2 — unreleased
+
+### Changed
+
+- Compiled `dist/` scripts are no longer stored in git. `npm run build` writes them locally; the release ZIP still includes them.
+
 ## 0.4.1.1 — 2026-09-08
 
 YouTube ads still played after 0.4.1 because many of them never passed through `response.json()` on `/player`.
