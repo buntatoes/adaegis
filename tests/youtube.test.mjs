@@ -550,6 +550,14 @@ test("JSON.parse of player JSON and ad-only payloads lose ad fields", () => {
   assert.equal(adsOnly.playerAds, undefined);
   assert.equal(context.JSON.parse(JSON.stringify({ comments: [1] })).comments[0], 1);
 });
+test("JSON.parse of ad-shaped objects does not exhaust the player-edit cap", async () => {
+  const { context } = setup();
+  for (let i = 0; i < 200; i++) {
+    const parsed = context.JSON.parse(JSON.stringify({ adPlacements: [{}], playerAds: [{}] }));
+    assert.equal(parsed.adPlacements, undefined);
+  }
+  assert.equal((await (await context.fetch("/youtubei/v1/player")).json()).adPlacements, undefined);
+});
 test("ad_break and next player JSON lose ad fields", async () => {
   const nested = fixture();
   const { context } = setup({ fetchImpl: async url => new Response(JSON.stringify(
