@@ -8,6 +8,14 @@ Dates are UTC. Version numbers are extension releases, not Chrome Web Store list
 
 - Compiled `dist/` scripts are no longer stored in git. `npm run build` writes them locally; the release ZIP still includes them.
 
+### Fixed
+
+- Settings still load if `chrome.storage.local.setAccessLevel` is rejected
+- The timed-pause toolbar badge counts down once a minute while filtering is paused
+- YouTube filtering resumes after an error if the experiment is toggled during in-page navigation
+- `JSON.parse` cleanups no longer consume the per-document player-edit cap
+- Player fetch replies read from `response.body` lose ad fields the same way as `json()`, `text()`, and `arrayBuffer()`
+
 ## 0.4.1.1 — 2026-09-08
 
 YouTube ads still played after 0.4.1 because many of them never passed through `response.json()` on `/player`.
