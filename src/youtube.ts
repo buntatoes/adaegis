@@ -169,7 +169,7 @@
   }
   function rememberPage(): void {
     const key = pageKey();
-    if (!wanted || !key) return;
+    if (!key) return;
     if (seenKey && key !== seenKey) recover();
     seenKey = key;
   }
@@ -434,7 +434,7 @@
     if (observing && pending === undefined) pending = window.setTimeout(inspect, LIMITS.scanDelayMs);
   });
   window.addEventListener("adaegis:youtube-stop", () => { wanted = false; stop(); });
-  window.addEventListener("adaegis:youtube-start", () => { wanted = true; start(); });
+  window.addEventListener("adaegis:youtube-start", () => { wanted = true; sync(); });
   for (const name of ["yt-navigate-finish", "yt-navigate-start", "yt-page-data-updated"]) {
     document.addEventListener(name, sync);
     window.addEventListener(name, sync);
