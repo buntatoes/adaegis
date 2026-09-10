@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Buntos
+
 import {
   normalize, hostname, validHost, exceptionRules, matchesPattern,   pauseBadge,
   ALL_SITES, YOUTUBE_SITES, MUSIC_SITES, PAUSE_MINUTES, RESUME_ALARM, BADGE_ALARM,

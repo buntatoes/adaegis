@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Buntos
+
 // Dependency-free TypeScript erasure. Type checking remains a separate tsc command.
 import { stripTypeScriptTypes } from "node:module";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";

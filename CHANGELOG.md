@@ -2,6 +2,12 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
+## 0.4.3 — unreleased
+
+### Changed
+
+- License changed from Apache License 2.0 to GNU General Public License v3.0 or later
+
 ## 0.4.2 — 2026-09-10
 
 Security audit follow-up. Compiled output is no longer tracked in git; the five fixes below ship in this release.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Buntos
+
 import { hostname, validHost, parseHost, ALL_SITES, YOUTUBE_SITES, MUSIC_SITES, type Settings } from "./settings.js";
 
 async function main(): Promise<void> {

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Buntos
+
 (() => {
   const context = globalThis as typeof globalThis & { __adaegisContent?: boolean };
   if (context.__adaegisContent) return;

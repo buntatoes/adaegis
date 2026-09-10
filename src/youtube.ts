@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Buntos
+
 (() => {
   // Hard-coded policy. No page message, remote list, or popup setting can widen it.
   const HOSTS = ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"];
