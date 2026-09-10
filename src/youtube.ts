@@ -208,6 +208,22 @@
     if (typeof TextEncoder === "function") {
       const encoder = new TextEncoder();
       response.arrayBuffer = async () => encoder.encode(await asText()).buffer;
+      if (typeof ReadableStream === "function") {
+        Object.defineProperty(response, "body", {
+          configurable: true,
+          enumerable: true,
+          get() {
+            return new ReadableStream({
+              start(controller) {
+                void asText().then(text => {
+                  controller.enqueue(encoder.encode(text));
+                  controller.close();
+                }, error => controller.error(error));
+              }
+            });
+          }
+        });
+      }
     }
     if (typeof Blob === "function") {
       response.blob = async () => new Blob([await asText()], { type: "application/json" });
