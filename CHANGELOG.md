@@ -2,7 +2,9 @@
 
 Dates are UTC. Version numbers are extension releases, not Chrome Web Store listings.
 
-## 0.4.2 — unreleased
+## 0.4.2 — 2026-09-10
+
+Security audit follow-up. Compiled output is no longer tracked in git; the five fixes below ship in this release.
 
 ### Changed
 
