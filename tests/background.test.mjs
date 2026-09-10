@@ -56,7 +56,7 @@ const chrome = globalThis.chrome = {
   },
   action: { setBadgeText: async ({ text }) => { badge = text; }, setBadgeBackgroundColor: async () => {} },
   alarms: {
-    create: async (name, info) => { alarms = [{ name, ...info }]; },
+    create: async (name, info) => { alarms = [...alarms.filter(item => item.name !== name), { name, ...info }]; },
     clear: async name => { alarms = alarms.filter(item => item.name !== name); return true; },
     onAlarm: { addListener: f => { alarmListener = f; } }
   },
@@ -273,7 +273,12 @@ test("timed pause disables rules, sets a resume alarm, and restores on alarm", a
   assert.ok(data.pauseUntil > Date.now());
   assert.deepEqual(enabledRules, []);
   assert.equal(badge, "10m");
-  assert.equal(alarms[0].name, "adaegis-resume");
+  assert.ok(alarms.some(item => item.name === "adaegis-resume"));
+  assert.equal(alarms.find(item => item.name === "adaegis-pause-badge")?.periodInMinutes, 1);
+  data.pauseUntil = Date.now() + 4 * 60 * 1000;
+  alarmListener({ name: "adaegis-pause-badge" });
+  await drain();
+  assert.equal(badge, "4m");
   assert.equal((await send({ type: "set-pause", minutes: 15 })).ok, false);
   alarmListener({ name: "adaegis-resume" });
   await drain();

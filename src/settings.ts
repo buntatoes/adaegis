@@ -16,6 +16,7 @@ export const YOUTUBE_SITES = ["https://www.youtube.com/*", "https://m.youtube.co
 export const MUSIC_SITES = ["https://music.youtube.com/*"];
 export const PAUSE_MINUTES = [10, 60] as const;
 export const RESUME_ALARM = "adaegis-resume";
+export const BADGE_ALARM = "adaegis-pause-badge";
 
 export function validHost(value: unknown): value is string {
   return typeof value === "string" && value.length <= 253 &&
