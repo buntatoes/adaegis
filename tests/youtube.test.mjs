@@ -28,6 +28,7 @@ function setup({ initial = fixture(), player = null, fetchImpl, descriptor,
     URL, URLSearchParams, Request, Response, Event, Object, TextEncoder, Blob, HTMLVideoElement: Video, HTMLButtonElement: Button,
     JSON: { parse: JSON.parse.bind(JSON), stringify: JSON.stringify.bind(JSON) },
     Date: { now: () => now },
+    ReadableStream,
     document: {
       documentElement: { dataset: {} }, querySelector: () => player,
       addEventListener: add, removeEventListener: remove
@@ -552,6 +553,13 @@ test("cloned player blob loses ad fields", async () => {
   const { context } = setup();
   const blob = await (await context.fetch("/youtubei/v1/player")).blob();
   assert.equal(JSON.parse(await blob.text()).adSlots, undefined);
+});
+test("player fetch body stream loses ad fields", async () => {
+  const { context } = setup();
+  const response = await context.fetch("/youtubei/v1/player");
+  const raw = await new Response(response.body).text();
+  assert.equal(JSON.parse(raw).adPlacements, undefined);
+  assert.equal(JSON.parse(raw).adBreakHeartbeatParams, undefined);
 });
 test("ad-showing video is seeked to the end when Skip is missing", () => {
   let node;
