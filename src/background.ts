@@ -5,8 +5,8 @@ import {
 } from "./settings.js";
 
 // Content scripts cannot read/write the global allowlist or settings directly.
-const storageReady = chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
-void storageReady.catch(() => console.error("[AdAegis] Settings access could not be restricted."));
+const storageReady = chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" })
+  .catch(() => console.error("[AdAegis] Settings access could not be restricted."));
 let queue: Promise<unknown> = Promise.resolve();
 function serialize<T>(operation: () => Promise<T>): Promise<T> {
   const result = queue.then(operation);
